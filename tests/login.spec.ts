@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/fixtures';
+import * as allure from 'allure-js-commons';
 import users from '../test-data/users.json';
 
 test.describe('Login Page', () => {
@@ -7,6 +8,7 @@ test.describe('Login Page', () => {
   });
 
   test('should display all login form elements', async ({ loginPage }) => {
+    await allure.id('001');
     await expect(loginPage.logo).toBeVisible();
     await expect(loginPage.welcomeHeading).toHaveText('Welcome!');
     await expect(loginPage.usernameInput).toBeVisible();
@@ -17,6 +19,7 @@ test.describe('Login Page', () => {
   });
 
   test('should mask password by default and toggle visibility', async ({ loginPage }) => {
+    await allure.id('002');
     await loginPage.passwordInput.fill('testpassword');
     expect(await loginPage.isPasswordMasked()).toBe(true);
 
@@ -28,6 +31,7 @@ test.describe('Login Page', () => {
   });
 
   test('should toggle Remember Me checkbox', async ({ loginPage }) => {
+    await allure.id('003');
     await loginPage.checkRememberMe();
     await expect(loginPage.rememberMeCheckbox).toBeChecked();
     await loginPage.uncheckRememberMe();
@@ -35,21 +39,25 @@ test.describe('Login Page', () => {
   });
 
   test('should show error when submitting empty form', async ({ loginPage }) => {
+    await allure.id('004');
     await loginPage.signInButton.click();
     await expect(loginPage.errorMessage).toBeVisible();
   });
 
   test('should show error for invalid credentials', async ({ loginPage }) => {
+    await allure.id('005');
     await loginPage.login(users.invalidUser.username, users.invalidUser.password);
     await expect(loginPage.errorMessage).toBeVisible();
   });
 
   test('should show error for valid username with wrong password', async ({ loginPage }) => {
+    await allure.id('006');
     await loginPage.login(users.validUser.username, 'wrongpassword');
     await expect(loginPage.errorMessage).toBeVisible();
   });
 
   test('should login successfully and redirect to dashboard', async ({ loginPage, page }) => {
+    await allure.id('007');
     await loginPage.login(users.validUser.username, users.validUser.password);
     await page.waitForURL('**/dynamic/user-dashboard', { timeout: 60000 });
     await expect(page).toHaveURL(/\/dynamic\/user-dashboard/);
@@ -58,6 +66,7 @@ test.describe('Login Page', () => {
   });
 
   test('should redirect unauthenticated user to login', async ({ page }) => {
+    await allure.id('008');
     await page.goto('/dynamic/user-dashboard', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(25000);
     await expect(page).toHaveURL(/\/login/);

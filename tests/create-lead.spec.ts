@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import * as allure from 'allure-js-commons';
 import { loginAsDefaultUser } from './utils/login';
 import { LeadLocators } from './utils/locators/leadLocators';
 import { validLead, uniqueFirstName, requiredFields, invalidEmails, invalidMobiles, longFirstName } from './utils/testData';
@@ -14,6 +15,7 @@ test.describe('Create a Lead', () => {
 
   test.describe('1 - Happy Path', () => {
     test('should create a lead with all valid fields and verify details page', async ({ page }) => {
+      await allure.id('014');
       const testFirstName = uniqueFirstName();
 
       await lead.openNewLeadDialog();
@@ -77,8 +79,11 @@ test.describe('Create a Lead', () => {
   });
 
   test.describe('2 - Negative Tests', () => {
+    let negId = 15;
     requiredFields.forEach(({ field, label }) => {
+      const id = String(negId++).padStart(3, '0');
       test(`should show validation error when ${label} is missing`, async () => {
+        await allure.id(id);
         await lead.openNewLeadDialog();
 
         await lead.fillAllFieldsExcept(validLead, field);
@@ -90,6 +95,7 @@ test.describe('Create a Lead', () => {
     });
 
     test('should show validation errors when all required fields are empty', async () => {
+      await allure.id('022');
       await lead.openNewLeadDialog();
       await lead.submitForm();
 
@@ -97,6 +103,7 @@ test.describe('Create a Lead', () => {
     });
 
     test('should reject invalid email format', async ({ page }) => {
+      await allure.id('023');
       await lead.openNewLeadDialog();
 
       await lead.fillAllFields({ ...validLead, email: invalidEmails[0] });
@@ -107,6 +114,7 @@ test.describe('Create a Lead', () => {
     });
 
     test('should reject letters in mobile number field', async ({ page }) => {
+      await allure.id('024');
       await lead.openNewLeadDialog();
 
       await lead.fillAllFields({ ...validLead, mobile: invalidMobiles[0] });
@@ -119,6 +127,7 @@ test.describe('Create a Lead', () => {
 
   test.describe('3 - Edge Cases', () => {
     test('should handle extremely long first name without crashing', async () => {
+      await allure.id('025');
       await lead.openNewLeadDialog();
 
       await lead.fillAllFields({ ...validLead, firstName: longFirstName });
@@ -130,6 +139,7 @@ test.describe('Create a Lead', () => {
     });
 
     test('should discard the form when cancel is clicked', async () => {
+      await allure.id('026');
       const testFirstName = uniqueFirstName();
 
       await lead.openNewLeadDialog();
