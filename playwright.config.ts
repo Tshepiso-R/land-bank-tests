@@ -1,7 +1,7 @@
-const { defineConfig } = require('@playwright/test');
-const { baseURL } = require('./config/env');
+import { defineConfig } from '@playwright/test';
+import { baseURL } from './config/env';
 
-module.exports = defineConfig({
+export default defineConfig({
   testDir: './tests',
   timeout: 120000,
   expect: {

@@ -1,5 +1,5 @@
-const { test, expect } = require('../fixtures/fixtures');
-const users = require('../test-data/users.json');
+import { test, expect } from '../fixtures/fixtures';
+import users from '../test-data/users.json';
 
 test.describe('Login Page', () => {
   test.beforeEach(async ({ loginPage }) => {

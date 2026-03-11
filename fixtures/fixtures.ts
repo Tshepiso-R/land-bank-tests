@@ -1,8 +1,14 @@
-const base = require('@playwright/test');
-const { LoginPage } = require('../pages/LoginPage');
-const { HomePage } = require('../pages/HomePage');
+import { test as base, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+import { HomePage } from '../pages/HomePage';
 
-exports.test = base.test.extend({
+type TestFixtures = {
+  loginPage: LoginPage;
+  homePage: HomePage;
+  authenticatedPage: HomePage;
+};
+
+export const test = base.extend<TestFixtures>({
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
   },
@@ -21,4 +27,4 @@ exports.test = base.test.extend({
   },
 });
 
-exports.expect = base.expect;
+export { expect };

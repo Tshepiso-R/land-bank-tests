@@ -2,7 +2,7 @@
   "name": "land_bank",
   "version": "1.0.0",
   "description": "",
-  "main": "playwright.config.js",
+  "main": "playwright.config.ts",
   "directories": {
     "test": "tests"
   },
@@ -25,7 +25,9 @@
   "type": "commonjs",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@types/node": "^25.4.0",
     "allure-commandline": "^2.37.0",
-    "allure-playwright": "^3.6.0"
+    "allure-playwright": "^3.6.0",
+    "typescript": "^5.9.3"
   }
 }

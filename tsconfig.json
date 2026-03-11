@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@pages/*": ["pages/*"],
+      "@fixtures/*": ["fixtures/*"],
+      "@utils/*": ["utils/*"],
+      "@config/*": ["config/*"],
+      "@test-data/*": ["test-data/*"]
+    }
+  },
+  "include": ["pages/**/*.ts", "tests/**/*.ts", "fixtures/**/*.ts", "utils/**/*.ts", "config/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,4 +1,4 @@
-const { test, expect } = require('../fixtures/fixtures');
+import { test, expect } from '../fixtures/fixtures';
 
 test.describe('Dashboard', () => {
   test('should display dashboard with metric cards', async ({ authenticatedPage }) => {

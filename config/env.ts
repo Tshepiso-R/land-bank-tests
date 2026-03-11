@@ -1,4 +1,8 @@
-const environments = {
+interface EnvironmentConfig {
+  baseURL: string;
+}
+
+const environments: Record<string, EnvironmentConfig> = {
   qa: {
     baseURL: 'https://landbankcrm-adminportal-qa.shesha.app',
   },
@@ -11,5 +15,6 @@ const environments = {
 };
 
 const ENV = process.env.TEST_ENV || 'qa';
+const { baseURL } = environments[ENV];
 
-module.exports = { environments, ENV, ...environments[ENV] };
+export { environments, ENV, baseURL };

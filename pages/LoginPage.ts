@@ -1,10 +1,26 @@
-const { BasePage } = require('./BasePage');
+import { Page, Locator } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-class LoginPage extends BasePage {
-  constructor(page) {
+export class LoginPage extends BasePage {
+  readonly logo: Locator;
+  readonly welcomeHeading: Locator;
+  readonly welcomeSubtext: Locator;
+  readonly usernameInput: Locator;
+  readonly passwordInput: Locator;
+  readonly signInButton: Locator;
+  readonly rememberMeCheckbox: Locator;
+  readonly rememberMeLabel: Locator;
+  readonly forgotPasswordLink: Locator;
+  readonly passwordToggleHidden: Locator;
+  readonly passwordToggleVisible: Locator;
+  readonly mailIcon: Locator;
+  readonly lockIcon: Locator;
+  readonly errorMessage: Locator;
+  readonly errorCloseIcon: Locator;
+
+  constructor(page: Page) {
     super(page);
 
-    // Locators
     this.logo = page.locator('img').first();
     this.welcomeHeading = page.locator('strong').filter({ hasText: 'Welcome!' });
     this.welcomeSubtext = page.getByText('Please enter your personal details in order to access your profile.');
@@ -22,41 +38,36 @@ class LoginPage extends BasePage {
     this.errorCloseIcon = page.getByRole('img', { name: 'close-circle' });
   }
 
-  async navigate() {
+  async navigate(): Promise<void> {
     await super.navigate('/login');
     await this.waitForAppInitialization();
     await this.signInButton.waitFor({ state: 'visible', timeout: 30000 });
   }
 
-  async login(username, password) {
+  async login(username: string, password: string): Promise<void> {
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
     await this.signInButton.click();
   }
 
-  async togglePasswordVisibility() {
-    const eyeInvisible = this.passwordToggleHidden;
-    const eyeVisible = this.passwordToggleVisible;
-
-    if (await eyeInvisible.isVisible()) {
-      await eyeInvisible.click();
-    } else if (await eyeVisible.isVisible()) {
-      await eyeVisible.click();
+  async togglePasswordVisibility(): Promise<void> {
+    if (await this.passwordToggleHidden.isVisible()) {
+      await this.passwordToggleHidden.click();
+    } else if (await this.passwordToggleVisible.isVisible()) {
+      await this.passwordToggleVisible.click();
     }
   }
 
-  async isPasswordMasked() {
+  async isPasswordMasked(): Promise<boolean> {
     const type = await this.passwordInput.getAttribute('type');
     return type === 'password';
   }
 
-  async checkRememberMe() {
+  async checkRememberMe(): Promise<void> {
     await this.rememberMeCheckbox.check();
   }
 
-  async uncheckRememberMe() {
+  async uncheckRememberMe(): Promise<void> {
     await this.rememberMeCheckbox.uncheck();
   }
 }
-
-module.exports = { LoginPage };
