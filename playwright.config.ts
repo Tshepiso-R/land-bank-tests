@@ -8,6 +8,8 @@ export default defineConfig({
     timeout: 30000,
   },
   retries: 1,
+  workers: 4,
+  fullyParallel: true,
   reporter: [
     ['list'],
     ['html', {

@@ -1,0 +1,14 @@
+import { Page } from '@playwright/test';
+
+export async function login(page: Page, username: string, password: string): Promise<void> {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Sign In' }).waitFor({ state: 'visible', timeout: 60000 });
+  await page.getByRole('textbox', { name: 'Username' }).fill(username);
+  await page.getByRole('textbox', { name: 'Password' }).fill(password);
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.getByRole('menuitem', { name: 'area-chart Dashboard (User)' }).waitFor({ state: 'visible', timeout: 60000 });
+}
+
+export async function loginAsDefaultUser(page: Page): Promise<void> {
+  await login(page, 'promise', '123qwe');
+}
