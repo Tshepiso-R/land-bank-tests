@@ -1,0 +1,31 @@
+{
+  "name": "land_bank",
+  "version": "1.0.0",
+  "description": "",
+  "main": "playwright.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "npx playwright test",
+    "test:chromium": "npx playwright test --project=chromium",
+    "test:firefox": "npx playwright test --project=firefox",
+    "test:webkit": "npx playwright test --project=webkit",
+    "test:edge": "npx playwright test --project=edge",
+    "report:open": "npx playwright show-report playwright-report",
+    "report:serve": "node scripts/serve-report.js",
+    "report:share": "node scripts/share-report.js",
+    "allure:generate": "node scripts/allure-report.js",
+    "allure:open": "npx allure open allure-report",
+    "allure:serve": "npx allure open allure-report --port 9494 --host 0.0.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "allure-commandline": "^2.37.0",
+    "allure-playwright": "^3.6.0"
+  }
+}
