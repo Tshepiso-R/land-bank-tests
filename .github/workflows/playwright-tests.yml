@@ -1,4 +1,4 @@
-name: Playwright Tests & Allure Report
+name: Regression Tests
 
 on:
   push:
