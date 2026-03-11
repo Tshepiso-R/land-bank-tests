@@ -10,5 +10,7 @@ export async function login(page: Page, username: string, password: string): Pro
 }
 
 export async function loginAsDefaultUser(page: Page): Promise<void> {
-  await login(page, 'promise', '123qwe');
+  const username = process.env.CRM_USERNAME || 'promise';
+  const password = process.env.CRM_PASSWORD || '123qwe';
+  await login(page, username, password);
 }

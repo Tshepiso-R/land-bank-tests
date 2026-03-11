@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 export class LeadLocators {
   readonly page: Page;
@@ -13,7 +13,6 @@ export class LeadLocators {
   readonly newLeadButton: Locator;
   readonly searchInput: Locator;
   readonly searchButton: Locator;
-  readonly tableBody: Locator;
 
   // Add New Lead dialog
   readonly dialog: Locator;
@@ -39,7 +38,8 @@ export class LeadLocators {
     this.page = page;
 
     // Sidebar
-    this.sidebarTrigger = page.locator('.ant-layout-sider-trigger > span');
+    // Sidebar trigger uses aria-label from Ant Design's icon
+    this.sidebarTrigger = page.getByRole('img', { name: /menu-unfold|menu/ }).first();
     this.leadsLink = page.getByRole('link', { name: 'Leads' });
 
     // Leads table
@@ -48,20 +48,21 @@ export class LeadLocators {
     this.newLeadButton = page.getByRole('button', { name: 'plus New Lead' });
     this.searchInput = page.getByRole('textbox').first();
     this.searchButton = page.getByRole('button', { name: 'search' });
-    this.tableBody = page.locator('tbody');
 
     // Dialog
     this.dialog = page.getByRole('dialog', { name: 'Add New Lead' });
-    this.dialogTitle = this.dialog.locator('.ant-modal-title');
+    this.dialogTitle = this.dialog.getByText('Add New Lead');
 
-    // Form fields — use dialog scope to avoid ambiguity
+    // Form fields — Shesha/Ant Design renders labels separately from inputs
+    // without proper for/id associations, so getByLabel doesn't work.
+    // CSS class selectors (.ant-form-item, .ant-select) are used here as a
+    // necessary exception — Ant Design components expose no data-testid, stable
+    // id, or ARIA label on these elements.
     this.titleDropdown = this.dialog.locator('.ant-form-item').filter({ hasText: /^Title/ }).locator('.ant-select');
-    // Owner field does NOT register as role=textbox, so: FirstName=0, LastName=1, Mobile=2, Email=3
     this.firstNameInput = this.dialog.getByRole('textbox').nth(0);
     this.lastNameInput = this.dialog.getByRole('textbox').nth(1);
     this.mobileInput = this.dialog.getByRole('textbox').nth(2);
     this.emailInput = this.dialog.getByRole('textbox').nth(3);
-    // Use label-based locators for dropdowns to avoid fragile nth() indices
     this.clientTypeDropdown = this.dialog.locator('.ant-form-item').filter({ hasText: /^Client Type/ }).locator('.ant-select');
     this.provinceDropdown = this.dialog.locator('.ant-form-item').filter({ hasText: /^Province/ }).locator('.ant-select');
     this.preferredCommunicationDropdown = this.dialog.locator('.ant-form-item').filter({ hasText: /^Preferred/ }).locator('.ant-select');
@@ -84,17 +85,14 @@ export class LeadLocators {
 
   async openNewLeadDialog(): Promise<void> {
     await this.newLeadButton.click();
-    await this.dialog.waitFor({ state: 'visible', timeout: 30000 });
-  }
-
-  async selectDropdownOption(dropdown: Locator, optionText: string): Promise<void> {
-    await dropdown.click();
-    await this.page.locator('.ant-select-item-option-content').getByText(optionText, { exact: true }).click();
+    await expect(this.dialog).toBeVisible({ timeout: 30000 });
   }
 
   async selectTitle(title: string): Promise<void> {
     await this.titleDropdown.click();
-    await this.page.locator('.ant-select-item-option-content').getByText(title, { exact: true }).click();
+    await this.page.getByRole('option', { name: title }).or(
+      this.page.getByText(title, { exact: true }).last()
+    ).click();
   }
 
   async selectClientType(clientType: string): Promise<void> {
@@ -104,17 +102,19 @@ export class LeadLocators {
 
   async selectProvince(province: string): Promise<void> {
     await this.provinceDropdown.click();
-    await this.page.locator('.ant-select-item-option-content').getByText(province, { exact: true }).click();
+    await this.page.getByRole('option', { name: province }).or(
+      this.page.getByTitle(province)
+    ).click();
   }
 
   async selectPreferredCommunication(comm: string): Promise<void> {
     await this.preferredCommunicationDropdown.click();
-    await this.page.locator('.ant-select-item-option-content').getByText(comm, { exact: true }).click();
+    await this.page.getByTitle(comm, { exact: true }).click();
   }
 
   async selectLeadChannel(channel: string): Promise<void> {
     await this.leadChannelDropdown.click();
-    await this.page.locator('.ant-select-item-option-content').getByText(channel).first().click();
+    await this.page.getByTitle(channel, { exact: true }).click();
   }
 
   async fillAllFields(data: {
@@ -192,81 +192,45 @@ export class LeadLocators {
     return this.page.getByRole('row').filter({ hasText: firstName }).filter({ hasText: lastName });
   }
 
-  async getValidationErrors(): Promise<string[]> {
-    const errors = this.dialog.locator('.ant-form-item-explain-error');
-    await errors.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-    return await errors.allTextContents();
-  }
-
-  async hasValidationError(message: string): Promise<boolean> {
-    const errors = await this.getValidationErrors();
-    return errors.some((e) => e.toLowerCase().includes(message.toLowerCase()));
+  /** Check if the dialog has any fields with validation error state */
+  async hasValidationErrors(): Promise<boolean> {
+    const errorFields = this.dialog.locator('[aria-invalid="true"]');
+    const count = await errorFields.count();
+    return count > 0;
   }
 
   async getToastMessage(): Promise<string> {
-    const toast = this.page.locator('.ant-message-notice, .ant-notification-notice');
-    await toast.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    const toast = this.page.locator('[role="alert"]');
+    await expect(toast.first()).toBeVisible({ timeout: 15000 });
     return await toast.first().textContent() || '';
   }
 
   // --- Detail Page helpers ---
 
-  /**
-   * Click the magnifying glass icon on a lead row to open the detail page.
-   */
   async openLeadDetails(firstName: string, lastName: string): Promise<void> {
     const row = this.getLeadRowByName(firstName, lastName);
     await row.locator('[aria-label="search"]').click();
-    // Wait for detail page to load — look for the "Lead" subtitle
-    await this.page.getByText('Lead', { exact: true }).first().waitFor({ state: 'visible', timeout: 30000 });
+    await expect(this.page.getByText('Lead', { exact: true }).first()).toBeVisible({ timeout: 30000 });
   }
 
-  // --- Detail Page locators (call after navigating to detail page) ---
+  // --- Detail Page locators ---
 
-  /** Header: "LastName, FirstName" — not a semantic heading, use text matching */
-  detailHeadingContains(text: string): Locator {
-    return this.page.getByText(text, { exact: false }).first();
-  }
-
-  /** Header badge cards */
-  get detailStatus(): Locator {
-    return this.page.getByText('Status').locator('..').locator('.ant-tag, span').last();
-  }
-
-  get detailAssessment(): Locator {
-    return this.page.getByText('Assessment').locator('..');
-  }
-
-  get detailLeadOwner(): Locator {
-    return this.page.getByText('Lead Owner').locator('..');
-  }
-
-  get detailHeaderProvince(): Locator {
-    return this.page.getByText('Province').first().locator('..');
-  }
-
-  get detailRegion(): Locator {
-    return this.page.getByText('Region').locator('..');
-  }
-
-  /** Action buttons — scoped to sha-toolbar-btn to avoid Shesha configurator duplicates */
   get editButton(): Locator {
-    return this.page.locator('button.sha-toolbar-btn').filter({ hasText: 'Edit' });
+    return this.page.getByRole('button', { name: /edit Edit/i });
   }
 
   get disqualifyButton(): Locator {
-    return this.page.locator('button.sha-toolbar-btn').filter({ hasText: 'Disqualify' });
+    return this.page.getByRole('button', { name: /Disqualify/i });
   }
 
   get auditLogButton(): Locator {
-    return this.page.locator('button.sha-toolbar-btn').filter({ hasText: 'Audit Log' });
+    return this.page.getByRole('button', { name: /Audit Log/i });
   }
 
   get initiatePreScreeningButton(): Locator {
-    return this.page.locator('button.sha-toolbar-btn').filter({ hasText: 'Initiate Pre-Screening' });
+    return this.page.getByRole('button', { name: /Initiate Pre-Screening/i });
   }
 
-  /** Tabs */
   get detailsTab(): Locator {
     return this.page.getByRole('tab', { name: 'Details' });
   }
@@ -279,43 +243,34 @@ export class LeadLocators {
     return this.page.getByRole('tab', { name: 'Notes' });
   }
 
-  /** Detail field values — text next to labels */
-  getDetailFieldValue(label: string): Locator {
-    return this.page.getByText(label, { exact: true }).locator('..').locator('span, div, p').last();
-  }
+  // --- Filter panel ---
 
-  /**
-   * Open the filter panel by clicking the filter icon on the table toolbar.
-   */
   async openFilterPanel(): Promise<void> {
     await this.page.locator('[aria-label="filter"]').click();
-    // Wait for the filter panel to appear (side panel with "Filter by")
-    await this.page.getByText('Filter by').waitFor({ state: 'visible', timeout: 10000 });
+    await expect(this.page.getByText('Filter by')).toBeVisible({ timeout: 10000 });
   }
 
-  /**
-   * Filter leads by First Name using the filter panel.
-   * Opens the panel, selects "First Name" column, enters the value, and applies.
-   */
   async filterByFirstName(firstName: string): Promise<void> {
     await this.openFilterPanel();
 
-    // Click the "Filter by" dropdown
+    // Click the "Filter by" dropdown — it's the combobox/select near "Filter by" text
     const filterSelect = this.page.getByText('Filter by').locator('..').locator('.ant-select');
     await filterSelect.click();
 
     // Select "First Name" from the dropdown options (scoped to avoid matching column header)
-    await this.page.locator('.ant-select-item-option-content').getByText('First Name', { exact: true }).click();
+    await this.page.getByRole('option', { name: 'First Name' }).or(
+      this.page.locator('.ant-select-item-option-content').getByText('First Name', { exact: true })
+    ).click();
 
-    // The "First Name" label and filter input should now be visible below
+    // Fill the filter input
     const filterInput = this.page.getByPlaceholder(/filter first/i);
-    await filterInput.waitFor({ state: 'visible', timeout: 10000 });
+    await expect(filterInput).toBeVisible({ timeout: 10000 });
     await filterInput.fill(firstName);
 
-    // Click Apply
+    // Apply
     await this.page.getByRole('button', { name: 'Apply' }).click();
 
-    // Wait for table to refresh
-    await this.page.waitForTimeout(3000);
+    // Wait for table to update
+    await expect(this.tableHeaderRow).toBeVisible({ timeout: 10000 });
   }
 }
