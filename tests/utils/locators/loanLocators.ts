@@ -62,8 +62,12 @@ export class LoanLocators {
   // --- Navigation ---
 
   async navigateToOpportunities(): Promise<void> {
-    await this.sidebarTrigger.click();
-    await this.page.getByRole('img', { name: 'menu-fold' }).waitFor({ state: 'visible', timeout: 10000 });
+    // Expand sidebar if collapsed (menu-unfold visible means sidebar is collapsed)
+    const menuUnfold = this.page.getByRole('img', { name: 'menu-unfold' });
+    if (await menuUnfold.isVisible().catch(() => false)) {
+      await menuUnfold.click();
+      await this.page.getByRole('img', { name: 'menu-fold' }).waitFor({ state: 'visible', timeout: 10000 });
+    }
     await this.opportunitiesLink.click();
     await this.tableHeaderRow.waitFor({ state: 'visible', timeout: 60000 });
   }
@@ -75,7 +79,23 @@ export class LoanLocators {
     await expect(this.page.getByText('Filter by')).toBeVisible({ timeout: 30000 });
   }
 
+  /** Remove all existing filter tags before applying a new filter */
+  async clearExistingFilters(): Promise<void> {
+    const closeIcons = this.page.locator('.ant-tag .anticon-close, .ant-tag-close-icon');
+    let count = await closeIcons.count();
+    while (count > 0) {
+      await closeIcons.first().click();
+      const spinner = this.page.locator('.ant-spin-spinning');
+      await spinner.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+      await spinner.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+      count = await closeIcons.count();
+    }
+  }
+
   async filterByAccount(accountName: string): Promise<void> {
+    // Clear any pre-existing filters from previous tests
+    await this.clearExistingFilters();
+
     await this.openFilterPanel();
 
     // Click the "Filter by" dropdown
