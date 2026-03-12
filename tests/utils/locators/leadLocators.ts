@@ -278,25 +278,35 @@ export class LeadLocators {
 
   /**
    * Answer all pre-screening questions to pass.
-   * For passing: Yes to all positive questions, No to blacklisted & debt review.
+   * Questions appear in fixed order; each has a Yes and No radio.
+   * We use .nth(index) because Ant Design radios lack unique ARIA labels
+   * or radiogroup roles — positional indexing is the only reliable approach.
    */
   async completePreScreeningToPass(): Promise<void> {
     await this.initiatePreScreeningButton.click();
-    await expect(this.preScreeningQuestionnaireHeading).toBeVisible({ timeout: 30000 });
+    const dialog = this.page.getByRole('dialog', { name: /Pre-Screening/i });
+    await expect(dialog).toBeVisible({ timeout: 30000 });
 
-    for (const question of preScreeningPassYes) {
-      const questionRow = this.page.getByText(question).locator('..');
-      await questionRow.getByRole('radio', { name: 'Yes' }).click();
+    // Each question's passing answer, in the order they appear in the dialog
+    const passingAnswers: ('Yes' | 'No')[] = [
+      'Yes', // Is the applicant a South African citizen?
+      'Yes', // Is the farming land located in South Africa?
+      'Yes', // Do the intended farming activities fall within the Land Bank mandate?
+      'No',  // Is the client blacklisted?
+      'No',  // Is the client currently under debt review?
+      'Yes', // Is the client's current Country of Residence South Africa?
+      'Yes', // Does the client currently have access to suitable land for farming activities?
+    ];
+
+    for (let i = 0; i < passingAnswers.length; i++) {
+      await dialog.getByRole('radio', { name: passingAnswers[i] }).nth(i).check();
     }
 
-    for (const question of preScreeningPassNo) {
-      const questionRow = this.page.getByText(question).locator('..');
-      await questionRow.getByRole('radio', { name: 'No' }).click();
-    }
+    // Check the confirmation checkbox to enable Submit
+    await dialog.getByRole('checkbox').check();
 
-    // Submit the questionnaire — look for a Submit/OK button
-    const submitBtn = this.page.getByRole('button', { name: /Submit|OK|Save/i });
-    await submitBtn.click();
+    // Submit the questionnaire
+    await dialog.getByRole('button', { name: /Submit/i }).click();
 
     // Wait for conversion
     await expect(this.statusConverted).toBeVisible({ timeout: 60000 });

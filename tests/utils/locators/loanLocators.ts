@@ -24,6 +24,7 @@ export class LoanLocators {
   readonly loanApplicationDetailsPanel: Locator;
 
   // Action buttons (header bar)
+  readonly initiateLoanApplicationButton: Locator;
   readonly editButton: Locator;
   readonly cancelButton: Locator;
   readonly saveButton: Locator;
@@ -53,6 +54,7 @@ export class LoanLocators {
     this.loanApplicationDetailsPanel = page.getByText('Loan Application Details').first();
 
     // Action buttons
+    this.initiateLoanApplicationButton = page.getByRole('button', { name: 'Initiate Loan Application' });
     this.editButton = page.getByRole('button', { name: 'edit Edit' });
     this.cancelButton = page.getByRole('button', { name: 'close Cancel' });
     this.saveButton = page.getByRole('button', { name: 'check Save' }).first();
@@ -141,6 +143,14 @@ export class LoanLocators {
     await expect(this.clientInfoTab).toBeVisible({ timeout: 60000 });
   }
 
+  // --- Workflow actions ---
+
+  async initiateLoanApplication(): Promise<void> {
+    await this.initiateLoanApplicationButton.click();
+    // After initiation the status changes from Draft (e.g. to Complete)
+    await expect(this.page.getByText('Draft')).toBeHidden({ timeout: 60000 });
+  }
+
   // --- Edit mode ---
 
   async enterEditMode(): Promise<void> {
@@ -210,22 +220,58 @@ export class LoanLocators {
     return this.formItemSelect(/^Provincial Office/);
   }
 
+  get countryOfResidenceDropdown(): Locator {
+    return this.formItemSelect(/^Country Of Residence/);
+  }
+
+  get citizenshipDropdown(): Locator {
+    return this.formItemSelect(/^Citizenship/);
+  }
+
+  get maritalStatusDropdown(): Locator {
+    return this.formItemSelect(/^Marital Status/);
+  }
+
+  get preferredCommunicationDropdown(): Locator {
+    return this.formItemSelect(/^Preferred Communication/);
+  }
+
   // --- Dropdown helpers (reusable for all Ant selects) ---
 
   async selectDropdownOption(dropdown: Locator, searchText: string, optionText: string): Promise<void> {
+    // Skip if already set to the desired value
+    const currentValue = dropdown.locator('.ant-select-selection-item');
+    if (await currentValue.isVisible().catch(() => false)) {
+      const text = await currentValue.textContent();
+      if (text?.trim() === optionText) {
+        return;
+      }
+    }
+
     await dropdown.click();
     // If it's a searchable dropdown, type to filter
     const searchInput = dropdown.locator('input[type="search"]');
     if (await searchInput.isVisible().catch(() => false)) {
       await searchInput.fill(searchText);
     }
-    const option = this.page.getByText(optionText, { exact: false });
+    // Scope to the active (visible) dropdown popup to avoid matching options in closed dropdowns
+    const activePopup = this.page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)');
+    const option = activePopup.locator('.ant-select-item-option').filter({ hasText: optionText });
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
     await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
   }
 
   async selectDropdownByTitle(dropdown: Locator, optionTitle: string): Promise<void> {
+    // Skip if already set to the desired value
+    const currentValue = dropdown.locator('.ant-select-selection-item');
+    if (await currentValue.isVisible().catch(() => false)) {
+      const text = await currentValue.textContent();
+      if (text?.trim() === optionTitle) {
+        return;
+      }
+    }
+
     await dropdown.click();
     const option = this.page.getByTitle(optionTitle);
     await expect(option.first()).toBeVisible({ timeout: 10000 });
@@ -238,16 +284,25 @@ export class LoanLocators {
     firstName: string;
     lastName: string;
     email: string;
+    countryOfResidence?: string;
+    citizenship?: string;
     countryOfOrigin?: string;
     clientClassification?: string;
     province?: string;
     region?: string;
     provincialOffice?: string;
+    maritalStatus?: string;
   }): Promise<void> {
     await this.clientIdNumberInput.fill(data.idNumber);
     await this.clientNameInput.fill(data.firstName);
     await this.clientSurnameInput.fill(data.lastName);
     await this.emailAddressInput.fill(data.email);
+    if (data.countryOfResidence) {
+      await this.selectDropdownOption(this.countryOfResidenceDropdown, data.countryOfResidence.substring(0, 5), data.countryOfResidence);
+    }
+    if (data.citizenship) {
+      await this.selectDropdownOption(this.citizenshipDropdown, data.citizenship.substring(0, 5), data.citizenship);
+    }
     if (data.countryOfOrigin) {
       await this.selectDropdownOption(this.countryOfOriginDropdown, data.countryOfOrigin.substring(0, 5), data.countryOfOrigin);
     }
@@ -262,6 +317,9 @@ export class LoanLocators {
     }
     if (data.provincialOffice) {
       await this.selectDropdownByTitle(this.provincialOfficeDropdown, data.provincialOffice);
+    }
+    if (data.maritalStatus) {
+      await this.selectDropdownByTitle(this.maritalStatusDropdown, data.maritalStatus);
     }
   }
 
@@ -291,15 +349,68 @@ export class LoanLocators {
     return this.formItemSelect(/^Sources Of Income/);
   }
 
+  async selectProduct(productName: string): Promise<void> {
+    // Products uses a picker dialog with double-click to select
+    const productsField = this.formItem(/^Products/);
+    const ellipsisButton = productsField.getByRole('button', { name: 'ellipsis' });
+    await ellipsisButton.click();
+
+    const dialog = this.page.getByRole('dialog', { name: 'Select Item' });
+    await expect(dialog).toBeVisible({ timeout: 30000 });
+
+    // Double-click the product row to select it
+    const productCell = dialog.getByRole('cell', { name: productName });
+    await expect(productCell).toBeVisible({ timeout: 10000 });
+    await productCell.dblclick();
+
+    // Dialog should close after selection
+    await expect(dialog).toBeHidden({ timeout: 10000 });
+  }
+
+  async addLoanPurpose(purpose: string, amount: string): Promise<void> {
+    // The Loan Purpose section has an inline editable table.
+    // The add-row is identified by the plus-circle button.
+    const addRow = this.page.getByRole('row', { name: /plus-circle/ });
+
+    // Select the Purpose in the add row's dropdown
+    const purposeDropdown = addRow.locator('.ant-select').first();
+    await purposeDropdown.click();
+    const option = this.page.getByTitle(purpose);
+    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await option.first().click();
+
+    // Fill amount in the add row
+    await addRow.getByRole('textbox').fill(amount);
+
+    // Click plus-circle to commit the row
+    await this.page.getByRole('button', { name: 'plus-circle' }).click();
+
+    // Verify the row appears in the table body
+    await expect(this.page.getByRole('cell', { name: purpose })).toBeVisible({ timeout: 10000 });
+  }
+
   async fillLoanInfo(data: {
     summary: string;
     amount: string;
+    product?: string;
     existingRelationship?: string;
+    sourcesOfIncome?: string;
+    loanPurpose?: string;
+    loanPurposeAmount?: string;
   }): Promise<void> {
+    if (data.product) {
+      await this.selectProduct(data.product);
+    }
     await this.businessSummaryTextarea.fill(data.summary);
     await this.requestedAmountInput.fill(data.amount);
     if (data.existingRelationship) {
       await this.selectDropdownByTitle(this.existingRelationshipDropdown, data.existingRelationship);
+    }
+    if (data.sourcesOfIncome) {
+      await this.selectDropdownByTitle(this.sourcesOfIncomeDropdown, data.sourcesOfIncome);
+    }
+    if (data.loanPurpose && data.loanPurposeAmount) {
+      await this.addLoanPurpose(data.loanPurpose, data.loanPurposeAmount);
     }
   }
 

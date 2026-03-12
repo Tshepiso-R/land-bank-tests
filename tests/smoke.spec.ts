@@ -3,7 +3,7 @@ import * as allure from 'allure-js-commons';
 import { login } from './utils/login';
 import { LeadLocators } from './utils/locators/leadLocators';
 import { LoanLocators } from './utils/locators/loanLocators';
-import { validLead, uniqueFirstName, convertedLead } from './utils/testData';
+import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData } from './utils/testData';
 
 test.describe('Smoke Tests — Happy Path', () => {
   test.describe.configure({ mode: 'serial' });
@@ -70,32 +70,36 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(lead.initiatePreScreeningButton).toBeVisible();
   });
 
-  test('should view a converted lead with Passed assessment', async () => {
+  test('should complete pre-screening and convert the lead', async () => {
     await allure.allureId('S05');
 
-    await lead.navigateToLeads();
-    await lead.filterByFirstName(convertedLead.firstName);
-    await lead.openLeadDetails(convertedLead.firstName, convertedLead.lastName);
+    // Lead detail page is still open from S04
+    await lead.completePreScreeningToPass();
 
-    await expect(lead.statusConverted).toBeVisible({ timeout: 30000 });
+    await expect(lead.statusConverted).toBeVisible({ timeout: 60000 });
     await expect(lead.assessmentPassed).toBeVisible();
     await expect(lead.convertedToOpportunityLink).toBeVisible();
     await expect(lead.convertedToAccountLink).toBeVisible();
   });
 
-  test('should navigate to Opportunities and find the converted lead', async () => {
+  test('should navigate to the new Opportunity', async () => {
     await allure.allureId('S06');
 
+    const accountName = `${testFirstName} ${validLead.lastName}`;
     await loan.navigateToOpportunities();
-    await loan.filterByAccount(convertedLead.accountName);
-    const row = loan.getOpportunityRowByAccount(convertedLead.accountName);
+    await loan.filterByAccount(accountName);
+    const row = loan.getOpportunityRowByAccount(accountName);
     await expect(row).toBeVisible({ timeout: 60000 });
   });
 
-  test('should open Opportunity detail and verify all tabs', async () => {
+  test('should open Opportunity detail and verify Draft status', async () => {
     await allure.allureId('S07');
 
-    await loan.openOpportunityDetails(convertedLead.accountName);
+    const accountName = `${testFirstName} ${validLead.lastName}`;
+    await loan.openOpportunityDetails(accountName);
+
+    // Verify Draft status and Initiate button on fresh opportunity
+    await expect(loan.initiateLoanApplicationButton).toBeVisible();
 
     // Top-level tabs
     await expect(loan.loanApplicationDetailsTab).toBeVisible();
@@ -108,16 +112,58 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(loan.farmsTab).toBeVisible();
   });
 
-  test('should enter edit mode on Opportunity and verify Client Info', async () => {
+  test('should fill all Client Info fields and save', async () => {
     await allure.allureId('S08');
 
     await loan.enterEditMode();
 
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
-    await expect(loan.clientNameInput).toHaveValue(convertedLead.firstName);
-    await expect(loan.clientSurnameInput).toHaveValue(convertedLead.lastName);
+    await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });
 
-    await loan.cancelButton.click();
-    await expect(loan.editButton).toBeVisible({ timeout: 30000 });
+    await loan.fillClientInfo(clientInfoDetails);
+    await loan.save();
+
+    await expect(loan.page.getByText(clientInfoDetails.idNumber)).toBeVisible();
+    await expect(loan.page.getByText(clientInfoDetails.countryOfResidence!).first()).toBeVisible();
+  });
+
+  test('should fill Loan Info fields and save', async () => {
+    await allure.allureId('S09');
+
+    await loan.enterEditMode();
+    await loan.loanInfoTab.click();
+    await expect(loan.loanInfoPanel).toBeVisible();
+
+    await loan.fillLoanInfo(loanInfo);
+    await expect(loan.businessSummaryTextarea).toHaveValue(loanInfo.summary);
+
+    await loan.save();
+
+    await loan.loanInfoTab.click();
+    await expect(loan.page.getByText(loanInfo.summary)).toBeVisible();
+  });
+
+  test('should add a farm and save', async () => {
+    await allure.allureId('S10');
+
+    await loan.enterEditMode();
+    await loan.farmsTab.click();
+
+    await loan.addFarm(farmData);
+    await expect(loan.createFarmDialog).toBeHidden({ timeout: 30000 });
+
+    await loan.save();
+
+    await loan.farmsTab.click();
+    await expect(loan.page.getByText(farmData.name, { exact: true }).first()).toBeVisible();
+  });
+
+  test('should initiate the loan application', async () => {
+    await allure.allureId('S11');
+
+    await loan.initiateLoanApplication();
+
+    // After initiation the status should no longer be Draft
+    await expect(loan.page.getByText('Draft')).toBeHidden();
   });
 });

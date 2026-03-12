@@ -66,11 +66,21 @@ export const clientInfoDetails = {
   firstName: 'Ian',
   lastName: 'Houvet',
   email: 'promise.raganya@boxfusion.io',
+  countryOfResidence: 'South Africa',
+  citizenship: 'South Africa',
+  countryOfOrigin: 'South Africa',
+  clientClassification: 'Development',
+  maritalStatus: 'Single',
 };
 
 export const loanInfo = {
   summary: 'Automated test loan summary',
   amount: '50000',
+  product: 'R MT Loans',
+  existingRelationship: 'None',
+  sourcesOfIncome: 'Farming income',
+  loanPurpose: 'Purchase Of Livestock',
+  loanPurposeAmount: '50000',
 };
 
 export const farmData = {

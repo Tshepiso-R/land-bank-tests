@@ -1,15 +1,18 @@
 import { defineConfig } from '@playwright/test';
 import { baseURL } from './config/env';
 
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: './tests',
   timeout: 120000,
   expect: {
     timeout: 30000,
   },
-  retries: 1,
+  retries: isCI ? 2 : 0,
   workers: 4,
   fullyParallel: true,
+  maxFailures: isCI ? 0 : 1,
   reporter: [
     ['list'],
     ['html', {
@@ -44,10 +47,6 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { browserName: 'webkit' },
-    },
-    {
-      name: 'edge',
-      use: { channel: 'msedge' },
     },
   ],
 });

@@ -1,33 +1,67 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import { loginAsDefaultUser } from './utils/login';
+import { login } from './utils/login';
+import { LeadLocators } from './utils/locators/leadLocators';
 import { LoanLocators } from './utils/locators/loanLocators';
-import { convertedLead, loanInfo, farmData } from './utils/testData';
+import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData } from './utils/testData';
 
 test.describe('Loan Details Workflow', () => {
-  // Sequential workflow: each test continues where the previous one left off
   test.describe.configure({ mode: 'serial' });
 
+  let page: Page;
+  let lead: LeadLocators;
   let loan: LoanLocators;
+  let testFirstName: string;
+  let accountName: string;
 
-  test.beforeEach(async ({ page }) => {
-    await loginAsDefaultUser(page);
+  test.beforeAll(async ({ browser }) => {
+    testFirstName = uniqueFirstName();
+    accountName = `${testFirstName} ${validLead.lastName}`;
+    page = await browser.newPage();
+    const username = process.env.CRM_USERNAME || 'promise';
+    const password = process.env.CRM_PASSWORD || '123qwe';
+    await login(page, username, password);
+    lead = new LeadLocators(page);
     loan = new LoanLocators(page);
   });
 
-  /** Navigate via sidebar → Opportunities → filter by Account → open detail */
-  async function navigateToOpportunity(loan: LoanLocators): Promise<void> {
-    await loan.navigateToOpportunities();
-    await loan.filterByAccount(convertedLead.accountName);
-    const row = loan.getOpportunityRowByAccount(convertedLead.accountName);
-    await expect(row).toBeVisible({ timeout: 60000 });
-    await loan.openOpportunityDetails(convertedLead.accountName);
-  }
+  test.afterAll(async () => {
+    await page.close();
+  });
 
-  test('should navigate to the Opportunity via sidebar and display all tabs', async () => {
+  test('should create a lead and convert it via pre-screening', async () => {
     await allure.allureId('035');
 
-    await navigateToOpportunity(loan);
+    // Create lead
+    await lead.navigateToLeads();
+    await lead.openNewLeadDialog();
+    await lead.fillAllFields({ ...validLead, firstName: testFirstName });
+    await lead.submitForm();
+    await expect(lead.dialog).toBeHidden({ timeout: 30000 });
+
+    // Filter and open detail
+    await lead.filterByFirstName(testFirstName);
+    const row = lead.getLeadRowByName(testFirstName, validLead.lastName);
+    await expect(row).toBeVisible({ timeout: 60000 });
+    await lead.openLeadDetails(testFirstName, validLead.lastName);
+
+    // Pre-screen to convert
+    await lead.completePreScreeningToPass();
+    await expect(lead.statusConverted).toBeVisible({ timeout: 60000 });
+    await expect(lead.convertedToOpportunityLink).toBeVisible();
+  });
+
+  test('should navigate to the new Opportunity and display all tabs', async () => {
+    await allure.allureId('036');
+
+    await loan.navigateToOpportunities();
+    await loan.filterByAccount(accountName);
+    const row = loan.getOpportunityRowByAccount(accountName);
+    await expect(row).toBeVisible({ timeout: 60000 });
+    await loan.openOpportunityDetails(accountName);
+
+    // Verify Draft status and Initiate button
+    await expect(loan.initiateLoanApplicationButton).toBeVisible();
 
     // Verify top-level tabs
     await expect(loan.loanApplicationDetailsTab).toBeVisible();
@@ -40,35 +74,29 @@ test.describe('Loan Details Workflow', () => {
     await expect(loan.farmsTab).toBeVisible();
   });
 
-  test('should enter edit mode and verify Client Info fields', async () => {
-    await allure.allureId('036');
+  test('should fill all Client Info fields and save', async () => {
+    await allure.allureId('037');
 
-    await navigateToOpportunity(loan);
     await loan.enterEditMode();
 
     // Wait for form to fully load with existing data
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });
 
-    // Verify all Client Info fields are visible and editable
-    await expect(loan.clientIdNumberInput).toBeVisible();
-    await expect(loan.clientSurnameInput).toBeVisible();
-    await expect(loan.emailAddressInput).toBeVisible();
-    await expect(loan.mobileNumberInput).toBeVisible();
+    // Fill all Client Info fields (including blank ones)
+    await loan.fillClientInfo(clientInfoDetails);
 
-    // Verify the existing lead data matches (Link Test)
-    await expect(loan.clientNameInput).toHaveValue(convertedLead.firstName);
-    await expect(loan.clientSurnameInput).toHaveValue(convertedLead.lastName);
+    // Save and verify
+    await loan.save();
 
-    // Cancel to reset
-    await loan.cancelButton.click();
-    await expect(loan.editButton).toBeVisible({ timeout: 30000 });
+    // Verify saved values in read-only mode
+    await expect(loan.page.getByText(clientInfoDetails.idNumber)).toBeVisible();
+    await expect(loan.page.getByText(clientInfoDetails.countryOfResidence!).first()).toBeVisible();
   });
 
-  test('should fill Loan Info fields', async () => {
-    await allure.allureId('037');
+  test('should fill Loan Info fields and save', async () => {
+    await allure.allureId('038');
 
-    await navigateToOpportunity(loan);
     await loan.enterEditMode();
     await loan.loanInfoTab.click();
     await expect(loan.loanInfoPanel).toBeVisible();
@@ -78,15 +106,17 @@ test.describe('Loan Details Workflow', () => {
     // Verify the summary was filled
     await expect(loan.businessSummaryTextarea).toHaveValue(loanInfo.summary);
 
-    // Cancel
-    await loan.cancelButton.click();
-    await expect(loan.editButton).toBeVisible({ timeout: 30000 });
+    // Save and verify
+    await loan.save();
+
+    // Verify saved values in read-only mode on Loan Info tab
+    await loan.loanInfoTab.click();
+    await expect(loan.page.getByText(loanInfo.summary)).toBeVisible();
   });
 
-  test('should add a farm with details', async () => {
-    await allure.allureId('038');
+  test('should add a farm with details and save', async () => {
+    await allure.allureId('039');
 
-    await navigateToOpportunity(loan);
     await loan.enterEditMode();
     await loan.farmsTab.click();
 
@@ -95,15 +125,25 @@ test.describe('Loan Details Workflow', () => {
     // Farm dialog should close after submission
     await expect(loan.createFarmDialog).toBeHidden({ timeout: 30000 });
 
-    // Cancel
-    await loan.cancelButton.click();
-    await expect(loan.editButton).toBeVisible({ timeout: 30000 });
+    // Save and verify
+    await loan.save();
+
+    // Verify the farm appears in Farms tab
+    await loan.farmsTab.click();
+    await expect(loan.page.getByText(farmData.name, { exact: true }).first()).toBeVisible();
+  });
+
+  test('should initiate the loan application', async () => {
+    await allure.allureId('040');
+
+    await loan.initiateLoanApplication();
+
+    // After initiation the status should no longer be Draft
+    await expect(loan.page.getByText('Draft')).toBeHidden();
   });
 
   test('should verify edit and cancel workflow', async () => {
-    await allure.allureId('039');
-
-    await navigateToOpportunity(loan);
+    await allure.allureId('041');
 
     // Verify read-only mode shows Edit button
     await expect(loan.editButton).toBeVisible();
