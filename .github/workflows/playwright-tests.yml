@@ -27,12 +27,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -58,7 +58,7 @@ jobs:
           TEST_ENV: qa
 
       - name: Download previous Allure history
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: allure-history
           key: allure-history-${{ github.ref_name }}
@@ -81,14 +81,14 @@ jobs:
           cp -r allure-report/history allure-history/last-history || true
 
       - name: Upload Allure report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: allure-report
           path: allure-report/
           retention-days: 30
 
       - name: Upload Playwright HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-report
           path: playwright-report/
@@ -100,7 +100,7 @@ jobs:
 
       - name: Upload to GitHub Pages
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: allure-report/
 
@@ -116,4 +116,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
