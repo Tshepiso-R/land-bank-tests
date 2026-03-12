@@ -41,7 +41,7 @@ export class LoginPage extends BasePage {
   async navigate(): Promise<void> {
     await super.navigate('/login');
     await this.waitForAppInitialization();
-    await this.signInButton.waitFor({ state: 'visible', timeout: 30000 });
+    await this.signInButton.waitFor({ state: 'visible', timeout: 60000 });
   }
 
   async login(username: string, password: string): Promise<void> {

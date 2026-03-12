@@ -21,6 +21,12 @@ export const validLead = {
 
 // NOTE: Known issue — the global search bar on the Leads table does not filter results.
 
+// Existing converted lead used for read-only tests (avoids creating new data)
+export const convertedLead = {
+  firstName: 'Link',
+  lastName: 'Test',
+};
+
 export const invalidEmails = ['notanemail', 'missing@', '@nodomain', 'spaces in@email.com'];
 export const invalidMobiles = ['ABCDEFGHIJ', 'letters', '12345'];
 export const longFirstName = 'A'.repeat(100);

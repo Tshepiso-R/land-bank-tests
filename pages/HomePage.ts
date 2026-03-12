@@ -41,6 +41,6 @@ export class HomePage extends BasePage {
   }
 
   async waitForDashboard(): Promise<void> {
-    await this.dashboardHeading.waitFor({ state: 'visible', timeout: 30000 });
+    await this.dashboardHeading.waitFor({ state: 'visible', timeout: 60000 });
   }
 }

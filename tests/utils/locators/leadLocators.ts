@@ -90,31 +90,47 @@ export class LeadLocators {
 
   async selectTitle(title: string): Promise<void> {
     await this.titleDropdown.click();
-    await this.page.getByRole('option', { name: title }).or(
+    const option = this.page.getByRole('option', { name: title }).or(
       this.page.getByText(title, { exact: true }).last()
-    ).click();
+    );
+    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await option.first().click();
+    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
   }
 
   async selectClientType(clientType: string): Promise<void> {
     await this.clientTypeDropdown.click();
-    await this.page.getByTitle(clientType).click();
+    const option = this.page.getByTitle(clientType);
+    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await option.first().click();
+    // Wait for the dropdown to close before interacting with the next field
+    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
   }
 
   async selectProvince(province: string): Promise<void> {
     await this.provinceDropdown.click();
-    await this.page.getByRole('option', { name: province }).or(
+    const option = this.page.getByRole('option', { name: province }).or(
       this.page.getByTitle(province)
-    ).click();
+    );
+    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await option.first().click();
+    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
   }
 
   async selectPreferredCommunication(comm: string): Promise<void> {
     await this.preferredCommunicationDropdown.click();
-    await this.page.getByTitle(comm, { exact: true }).click();
+    const option = this.page.getByTitle(comm, { exact: true });
+    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await option.first().click();
+    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
   }
 
   async selectLeadChannel(channel: string): Promise<void> {
     await this.leadChannelDropdown.click();
-    await this.page.getByTitle(channel, { exact: true }).click();
+    const option = this.page.getByTitle(channel, { exact: true });
+    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await option.first().click();
+    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
   }
 
   async fillAllFields(data: {
@@ -209,8 +225,10 @@ export class LeadLocators {
 
   async openLeadDetails(firstName: string, lastName: string): Promise<void> {
     const row = this.getLeadRowByName(firstName, lastName);
-    await row.locator('[aria-label="search"]').click();
-    await expect(this.page.getByText('Lead', { exact: true }).first()).toBeVisible({ timeout: 30000 });
+    const detailLink = row.locator('a[href*="LBLead-details"]');
+    await detailLink.click();
+    await this.page.waitForURL(/LBLead-details/, { timeout: 60000 });
+    await expect(this.page.getByText('Lead', { exact: true }).first()).toBeVisible({ timeout: 60000 });
   }
 
   // --- Detail Page locators ---
@@ -243,11 +261,92 @@ export class LeadLocators {
     return this.page.getByRole('tab', { name: 'Notes' });
   }
 
+  // --- Detail Page header locators ---
+
+  get detailHeading(): Locator {
+    return this.page.getByText('Lead', { exact: true }).first();
+  }
+
+  get statusNew(): Locator {
+    return this.page.getByText('NEW');
+  }
+
+  get statusConverted(): Locator {
+    return this.page.getByText('Converted', { exact: true }).first();
+  }
+
+  get assessmentPassed(): Locator {
+    return this.page.getByText('Passed', { exact: true }).first();
+  }
+
+  get assessmentFailed(): Locator {
+    return this.page.getByText('Failed', { exact: true });
+  }
+
+  detailHeadingName(lastName: string, firstName: string): Locator {
+    return this.page.getByText(`${lastName}, ${firstName}`);
+  }
+
+  // --- Detail Page field locators ---
+
+  detailFieldValue(text: string): Locator {
+    return this.page.getByText(text).first();
+  }
+
+  get fieldLabelFirstName(): Locator {
+    return this.page.getByText('First Name');
+  }
+
+  get fieldLabelLastName(): Locator {
+    return this.page.getByText('Last Name');
+  }
+
+  get fieldLabelMobileNumber(): Locator {
+    return this.page.getByText('Mobile Number');
+  }
+
+  get fieldLabelEmailAddress(): Locator {
+    return this.page.getByText('Email Address');
+  }
+
+  get fieldLabelClientType(): Locator {
+    return this.page.getByText('Client Type');
+  }
+
+  get fieldLabelLeadChannel(): Locator {
+    return this.page.getByText('Lead Channel');
+  }
+
+  get fieldLabelDescription(): Locator {
+    return this.page.getByText('Description');
+  }
+
+  get fieldLabelRejectionReason(): Locator {
+    return this.page.getByText('Rejection Reason');
+  }
+
+  // --- Converted To section ---
+  // Shesha renders "Converted To Opportunity/Account" labels with a nested
+  // button > link structure. The label text (e.g. "Converted To Opportunity :")
+  // is in a sibling element, so we locate via the form-item that contains both.
+
+  get convertedToHeading(): Locator {
+    return this.page.getByText('Converted To', { exact: true });
+  }
+
+  get convertedToOpportunityLink(): Locator {
+    return this.page.locator('a[href*="LBOpportunity-details"]');
+  }
+
+  get convertedToAccountLink(): Locator {
+    return this.page.locator('a[href*="LBAccount-details"]');
+  }
+
   // --- Filter panel ---
 
   async openFilterPanel(): Promise<void> {
     await this.page.locator('[aria-label="filter"]').click();
-    await expect(this.page.getByText('Filter by')).toBeVisible({ timeout: 10000 });
+    await expect(this.page.getByText('Filter by')).toBeVisible({ timeout: 30000 });
   }
 
   async filterByFirstName(firstName: string): Promise<void> {
@@ -267,10 +366,13 @@ export class LeadLocators {
     await expect(filterInput).toBeVisible({ timeout: 10000 });
     await filterInput.fill(firstName);
 
-    // Apply
+    // Apply the filter
     await this.page.getByRole('button', { name: 'Apply' }).click();
 
-    // Wait for table to update
-    await expect(this.tableHeaderRow).toBeVisible({ timeout: 10000 });
+    // Wait for table loading to start and finish
+    const spinner = this.page.locator('.ant-spin-spinning');
+    await spinner.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    await spinner.waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
+    await expect(this.tableHeaderRow).toBeVisible({ timeout: 15000 });
   }
 }

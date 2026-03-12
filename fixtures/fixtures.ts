@@ -20,7 +20,10 @@ export const test = base.extend<TestFixtures>({
   authenticatedPage: async ({ page }, use) => {
     const loginPage = new LoginPage(page);
     await loginPage.navigate();
-    await loginPage.login('promise', '123qwe');
+    await loginPage.login(
+      process.env.CRM_USERNAME || 'promise',
+      process.env.CRM_PASSWORD || '123qwe',
+    );
     const homePage = new HomePage(page);
     await homePage.waitForDashboard();
     await use(homePage);
