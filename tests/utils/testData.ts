@@ -33,13 +33,15 @@ export const invalidMobiles = ['ABCDEFGHIJ', 'letters', '12345'];
 export const longFirstName = 'A'.repeat(100);
 
 export const requiredFields = [
-  { field: 'firstName', label: 'First Name', expectedError: 'First name is required' },
-  { field: 'lastName', label: 'Last Name', expectedError: 'Last name is required' },
-  { field: 'mobile', label: 'Mobile', expectedError: 'Mobile number is required' },
-  { field: 'email', label: 'Email', expectedError: 'Email address is required' },
-  { field: 'clientType', label: 'Client Type', expectedError: 'Client type is required' },
-  { field: 'province', label: 'Province', expectedError: 'Province is required' },
-  { field: 'leadChannel', label: 'Lead Channel', expectedError: 'Lead channel is required' },
+  { field: 'title', label: 'Title' },
+  { field: 'firstName', label: 'First Name' },
+  { field: 'lastName', label: 'Last Name' },
+  { field: 'mobile', label: 'Mobile Number' },
+  { field: 'email', label: 'Email Address' },
+  { field: 'clientType', label: 'Client Type' },
+  { field: 'province', label: 'Province' },
+  { field: 'preferredCommunication', label: 'Preferred Communication' },
+  { field: 'leadChannel', label: 'Lead Channel' },
 ] as const;
 
 export type RequiredFieldKey = typeof requiredFields[number]['field'];

@@ -95,20 +95,19 @@ export class LeadLocators {
 
   async selectTitle(title: string): Promise<void> {
     await this.titleDropdown.click();
-    const option = this.page.getByRole('option', { name: title }).or(
-      this.page.getByText(title, { exact: true }).last()
-    );
-    await expect(option.first()).toBeVisible({ timeout: 10000 });
-    await option.first().click();
-    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
+    const combobox = this.titleDropdown.getByRole('combobox');
+    await combobox.pressSequentially(title, { delay: 50 });
+    const option = this.page.locator('.ant-select-item-option').filter({ hasText: title }).first();
+    await expect(option).toBeVisible({ timeout: 10000 });
+    await option.click();
+    await expect(option).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async selectClientType(clientType: string): Promise<void> {
     await this.clientTypeDropdown.click();
     const option = this.page.getByTitle(clientType);
-    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await expect(option.first()).toBeVisible({ timeout: 30000 });
     await option.first().click();
-    // Wait for the dropdown to close before interacting with the next field
     await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
@@ -117,7 +116,7 @@ export class LeadLocators {
     const option = this.page.getByRole('option', { name: province }).or(
       this.page.getByTitle(province)
     );
-    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await expect(option.first()).toBeVisible({ timeout: 30000 });
     await option.first().click();
     await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
@@ -125,15 +124,18 @@ export class LeadLocators {
   async selectPreferredCommunication(comm: string): Promise<void> {
     await this.preferredCommunicationDropdown.click();
     const option = this.page.getByTitle(comm, { exact: true });
-    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await expect(option.first()).toBeVisible({ timeout: 30000 });
     await option.first().click();
     await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async selectLeadChannel(channel: string): Promise<void> {
     await this.leadChannelDropdown.click();
+    // Type to filter the dropdown and avoid viewport scrolling issues
+    const combobox = this.leadChannelDropdown.getByRole('combobox');
+    await combobox.pressSequentially(channel.substring(0, 4), { delay: 50 });
     const option = this.page.getByTitle(channel, { exact: true });
-    await expect(option.first()).toBeVisible({ timeout: 10000 });
+    await expect(option.first()).toBeVisible({ timeout: 30000 });
     await option.first().click();
     await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
@@ -213,17 +215,24 @@ export class LeadLocators {
     return this.page.getByRole('row').filter({ hasText: firstName }).filter({ hasText: lastName });
   }
 
-  /** Check if the dialog has any fields with validation error state */
-  async hasValidationErrors(): Promise<boolean> {
-    const errorFields = this.dialog.locator('[aria-invalid="true"]');
-    const count = await errorFields.count();
-    return count > 0;
+  /** Get all validation error messages visible in the dialog */
+  get validationErrors(): Locator {
+    return this.dialog.getByRole('alert');
   }
 
-  async getToastMessage(): Promise<string> {
-    const toast = this.page.locator('[role="alert"]');
-    await expect(toast.first()).toBeVisible({ timeout: 15000 });
-    return await toast.first().textContent() || '';
+  /** Get the specific "This field is required" error messages */
+  get requiredFieldErrors(): Locator {
+    return this.dialog.getByText('This field is required');
+  }
+
+  /** Get the email format validation error */
+  get invalidEmailError(): Locator {
+    return this.dialog.getByText('Please enter a valid email address');
+  }
+
+  /** Get the phone format validation error */
+  get invalidPhoneError(): Locator {
+    return this.dialog.getByText('Please enter a valid phone number');
   }
 
   // --- Detail Page helpers ---

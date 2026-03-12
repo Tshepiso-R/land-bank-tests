@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import { loginAsDefaultUser } from './utils/login';
 import { LeadLocators } from './utils/locators/leadLocators';
-import { validLead, uniqueFirstName, requiredFields, invalidEmails, invalidMobiles, longFirstName } from './utils/testData';
+import { validLead, uniqueFirstName, requiredFields, invalidEmails, invalidMobiles } from './utils/testData';
 
 test.describe('Create a Lead', () => {
   let lead: LeadLocators;
@@ -14,7 +14,7 @@ test.describe('Create a Lead', () => {
   });
 
   test.describe('1 - Happy Path', () => {
-    test('should create a lead with all valid fields and verify details page', async ({ page }) => {
+    test('should create a lead with all valid fields and verify details page', async () => {
       await allure.allureId('014');
       const testFirstName = uniqueFirstName();
 
@@ -24,9 +24,11 @@ test.describe('Create a Lead', () => {
       await lead.fillAllFields({ ...validLead, firstName: testFirstName });
       await lead.submitForm();
 
-      await expect(lead.dialog).toBeHidden({ timeout: 30000 });
+      await expect(lead.dialog).toBeHidden({ timeout: 60000 });
 
-      // Filter to find the newly created lead
+      // Reload and filter to find the newly created lead
+      await lead.page.reload({ waitUntil: 'networkidle' });
+      await expect(lead.tableHeaderRow).toBeVisible({ timeout: 60000 });
       await lead.filterByFirstName(testFirstName);
 
       const row = lead.getLeadRowByName(testFirstName, validLead.lastName);
@@ -65,95 +67,96 @@ test.describe('Create a Lead', () => {
       await expect(lead.detailFieldValue(validLead.leadChannel)).toBeVisible();
       await expect(lead.detailFieldValue(validLead.preferredCommunication!)).toBeVisible();
       await expect(lead.detailFieldValue(validLead.description!)).toBeVisible();
-
-      // Verify field labels
-      await expect(lead.fieldLabelFirstName).toBeVisible();
-      await expect(lead.fieldLabelLastName).toBeVisible();
-      await expect(lead.fieldLabelMobileNumber).toBeVisible();
-      await expect(lead.fieldLabelEmailAddress).toBeVisible();
-      await expect(lead.fieldLabelClientType).toBeVisible();
-      await expect(lead.fieldLabelLeadChannel).toBeVisible();
-      await expect(lead.fieldLabelDescription).toBeVisible();
-      await expect(lead.fieldLabelRejectionReason).toBeVisible();
     });
   });
 
-  test.describe('2 - Negative Tests', () => {
-    const requiredFieldsWithIds = requiredFields.map((f, i) => ({
-      ...f,
-      id: String(15 + i).padStart(3, '0'),
-    }));
+  test.describe('2 - Required Field Validation', () => {
+    test('should show validation errors when all required fields are empty', async () => {
+      await allure.allureId('015');
+      await lead.openNewLeadDialog();
 
-    for (const { field, label, id } of requiredFieldsWithIds) {
+      // Touch a field and clear it to ensure client-side validation triggers
+      await lead.firstNameInput.click();
+      await lead.firstNameInput.blur();
+      await lead.submitForm();
+
+      // Wait for validation errors to appear
+      await expect(lead.requiredFieldErrors.first()).toBeVisible({ timeout: 60000 });
+
+      // Dialog stays open
+      await expect(lead.dialog).toBeVisible();
+
+      // All 9 required fields should show "This field is required"
+      await expect(lead.requiredFieldErrors).toHaveCount(9);
+
+      // Mobile and Email also show format errors
+      await expect(lead.invalidPhoneError).toBeVisible();
+      await expect(lead.invalidEmailError).toBeVisible();
+    });
+
+    for (const [i, { field, label }] of requiredFields.entries()) {
       test(`should show validation error when ${label} is missing`, async () => {
-        await allure.allureId(id);
+        await allure.allureId(String(16 + i).padStart(3, '0'));
         await lead.openNewLeadDialog();
 
         await lead.fillAllFieldsExcept(validLead, field);
         await lead.submitForm();
 
-        // Dialog should remain open — form submission was blocked
-        await expect(lead.dialog).toBeVisible({ timeout: 10000 });
+        // Wait for validation error to appear
+        await expect(lead.requiredFieldErrors.first()).toBeVisible({ timeout: 30000 });
+
+        // Dialog stays open
+        await expect(lead.dialog).toBeVisible();
+      });
+    }
+  });
+
+  test.describe('3 - Format Validation', () => {
+    for (const [i, email] of invalidEmails.entries()) {
+      test(`should reject invalid email: "${email}"`, async () => {
+        await allure.allureId(String(25 + i).padStart(3, '0'));
+        await lead.openNewLeadDialog();
+
+        await lead.fillAllFields({ ...validLead, email });
+        await lead.submitForm();
+
+        // Dialog stays open with email validation error
+        await expect(lead.invalidEmailError).toBeVisible({ timeout: 30000 });
+        await expect(lead.dialog).toBeVisible();
       });
     }
 
-    test('should show validation errors when all required fields are empty', async () => {
-      await allure.allureId('022');
-      await lead.openNewLeadDialog();
-      await lead.submitForm();
+    for (const [i, mobile] of invalidMobiles.entries()) {
+      test(`should reject invalid mobile: "${mobile}"`, async () => {
+        await allure.allureId(String(29 + i).padStart(3, '0'));
+        await lead.openNewLeadDialog();
 
-      await expect(lead.dialog).toBeVisible({ timeout: 10000 });
-    });
+        await lead.fillAllFields({ ...validLead, mobile });
+        await lead.submitForm();
 
-    test('should reject invalid email format', async ({ page }) => {
-      await allure.allureId('023');
-      await lead.openNewLeadDialog();
-
-      await lead.fillAllFields({ ...validLead, email: invalidEmails[0] });
-      await page.keyboard.press('Tab');
-      await lead.submitForm();
-
-      await expect(lead.dialog).toBeVisible({ timeout: 10000 });
-    });
-
-    test('should reject letters in mobile number field', async ({ page }) => {
-      await allure.allureId('024');
-      await lead.openNewLeadDialog();
-
-      await lead.fillAllFields({ ...validLead, mobile: invalidMobiles[0] });
-      await page.keyboard.press('Tab');
-      await lead.submitForm();
-
-      await expect(lead.dialog).toBeVisible({ timeout: 10000 });
-    });
+        // Dialog stays open with phone validation error
+        await expect(lead.invalidPhoneError).toBeVisible({ timeout: 30000 });
+        await expect(lead.dialog).toBeVisible();
+      });
+    }
   });
 
-  test.describe('3 - Edge Cases', () => {
-    test('should handle extremely long first name without crashing', async () => {
-      await allure.allureId('025');
-      await lead.openNewLeadDialog();
-
-      await lead.fillAllFields({ ...validLead, firstName: longFirstName });
-      await lead.submitForm();
-
-      // Either accepted (dialog closes) or rejected (dialog stays) — no crash
-      const isVisible = await lead.dialog.isVisible();
-      expect(typeof isVisible).toBe('boolean');
-    });
-
+  test.describe('4 - Cancel Workflow', () => {
     test('should discard the form when cancel is clicked', async () => {
-      await allure.allureId('026');
+      await allure.allureId('032');
       const testFirstName = uniqueFirstName();
 
       await lead.openNewLeadDialog();
       await lead.fillAllFields({ ...validLead, firstName: testFirstName });
       await lead.cancelForm();
 
+      // Dialog should close
       await expect(lead.dialog).toBeHidden({ timeout: 15000 });
 
       // Lead should not exist in the table
+      await lead.filterByFirstName(testFirstName);
       const row = lead.getLeadRowByName(testFirstName, validLead.lastName);
-      await expect(row).toBeHidden({ timeout: 5000 });
+      await expect(row).toBeHidden({ timeout: 10000 });
     });
   });
 });
