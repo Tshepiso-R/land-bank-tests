@@ -2,6 +2,17 @@
 
 End-to-end test automation for the LandBank CRM application built on the Shesha framework.
 
+## Links
+
+| Resource | URL |
+|----------|-----|
+| CRM Application (QA) | https://landbankcrm-adminportal-qa.shesha.app |
+| CRM Application (Staging) | https://landbankcrm-adminportal-staging.shesha.app |
+| CRM Application (Prod) | https://landbankcrm-adminportal.shesha.app |
+| GitHub Repository | https://github.com/Tshepiso-R/land-bank-tests |
+| Allure Report (GitHub Pages) | https://tshepiso-r.github.io/land-bank-tests |
+| CI Pipeline | https://github.com/Tshepiso-R/land-bank-tests/actions |
+
 ## Tech Stack
 
 - [Playwright](https://playwright.dev/) - Browser automation
