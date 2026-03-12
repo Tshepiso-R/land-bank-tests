@@ -3,7 +3,7 @@ import * as allure from 'allure-js-commons';
 import { login } from './utils/login';
 import { LeadLocators } from './utils/locators/leadLocators';
 import { LoanLocators } from './utils/locators/loanLocators';
-import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData } from './utils/testData';
+import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData, opportunityOwner } from './utils/testData';
 
 test.describe('Smoke Tests — Happy Path', () => {
   test.describe.configure({ mode: 'serial' });
@@ -116,6 +116,9 @@ test.describe('Smoke Tests — Happy Path', () => {
     await allure.allureId('S08');
 
     await loan.enterEditMode();
+
+    // Fill Opportunity Owner in header section
+    await loan.selectOpportunityOwner(opportunityOwner);
 
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });

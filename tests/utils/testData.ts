@@ -93,3 +93,4 @@ export const farmData = {
 };
 
 export const assignedTo = 'Fatima Abrahams';
+export const opportunityOwner = 'Fatima Abrahams';

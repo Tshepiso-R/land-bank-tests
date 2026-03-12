@@ -508,6 +508,24 @@ export class LoanLocators {
     return this.page.getByText('Opportunity').first();
   }
 
+  /** Opportunity Owner — autocomplete combobox in the header section */
+  get opportunityOwnerCombobox(): Locator {
+    // The label and combobox are sibling ant-form-items inside a container.
+    // Navigate up from the label through the Ant form-item wrapper to the shared container.
+    return this.page.getByText('Opportunity Owner')
+      .locator('..').locator('..').locator('..').locator('..').locator('..')
+      .locator('..').getByRole('combobox');
+  }
+
+  async selectOpportunityOwner(name: string): Promise<void> {
+    const combobox = this.opportunityOwnerCombobox;
+    await combobox.click();
+    await combobox.pressSequentially(name.split(' ')[0], { delay: 50 });
+    const option = this.page.getByTitle(name).last();
+    await expect(option).toBeVisible({ timeout: 10000 });
+    await option.click();
+  }
+
   get assignedToDropdown(): Locator {
     return this.formItemSelect(/^Assigned To/);
   }
