@@ -51,7 +51,7 @@ jobs:
           if [ "${{ github.event_name }}" = "schedule" ]; then
             npx playwright test --project=chromium --project=firefox --project=webkit
           else
-            npx playwright test --project=chromium
+            npx playwright test tests/smoke.spec.ts --project=chromium
           fi
         continue-on-error: true
         env:
