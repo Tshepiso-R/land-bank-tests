@@ -61,6 +61,14 @@ export const preScreeningPassNo = [
   'Is the client currently under debt review?',
 ];
 
+// --- Testmail.app config ---
+export const testmailNamespace = '5s9ku';
+export const testmailApiKey = 'b300bfdf-3e55-4478-9e27-072849073ed4';
+
+export function testmailAddress(tag: string): string {
+  return `${testmailNamespace}.${tag}@inbox.testmail.app`;
+}
+
 // --- Loan / Opportunity test data ---
 
 export const clientInfoDetails = {

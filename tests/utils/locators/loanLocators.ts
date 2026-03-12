@@ -557,4 +557,38 @@ export class LoanLocators {
   async assignTo(name: string): Promise<void> {
     await this.selectDropdownOption(this.assignedToDropdown, name.split(' ')[0], name);
   }
+
+  // --- Consent page locators ---
+
+  get consentFormHeading(): Locator {
+    return this.page.getByRole('heading', { name: 'CONSENT FORM FOR THIRD-PARTY VERIFICATION CHECKS' });
+  }
+
+  get requestOtpButton(): Locator {
+    return this.page.getByRole('button', { name: 'Request OTP' });
+  }
+
+  get otpInput(): Locator {
+    return this.page.getByRole('textbox').first();
+  }
+
+  get submitOtpButton(): Locator {
+    return this.page.getByRole('button', { name: 'Submit OTP and Sign Consent' });
+  }
+
+  get submitConsentConfirmButton(): Locator {
+    return this.page.getByRole('button', { name: 'Submit', exact: true });
+  }
+
+  get consentSuccessToast(): Locator {
+    return this.page.getByText('Consent provided successfully');
+  }
+
+  get consentSuccessMessage(): Locator {
+    return this.page.getByText('Thank you for providing consent');
+  }
+
+  get otpSentToast(): Locator {
+    return this.page.getByText('The one-time-password (OTP) has been sent');
+  }
 }

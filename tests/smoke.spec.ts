@@ -3,7 +3,9 @@ import * as allure from 'allure-js-commons';
 import { login } from './utils/login';
 import { LeadLocators } from './utils/locators/leadLocators';
 import { LoanLocators } from './utils/locators/loanLocators';
-import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData, opportunityOwner } from './utils/testData';
+import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData, opportunityOwner, testmailAddress, testmailApiKey, testmailNamespace } from './utils/testData';
+
+test.use({ browserName: 'chromium' });
 
 test.describe('Smoke Tests — Happy Path', () => {
   test.describe.configure({ mode: 'serial' });
@@ -12,9 +14,15 @@ test.describe('Smoke Tests — Happy Path', () => {
   let lead: LeadLocators;
   let loan: LoanLocators;
   let testFirstName: string;
+  let emailTag: string;
+  let testEmail: string;
+  let consentUrl: string;
+  let opportunityUrl: string;
 
   test.beforeAll(async ({ browser }) => {
     testFirstName = uniqueFirstName();
+    emailTag = `consent-${Date.now()}`;
+    testEmail = testmailAddress(emailTag);
     // Single login session shared across all tests
     page = await browser.newPage();
     const username = process.env.CRM_USERNAME || 'promise';
@@ -127,7 +135,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Client Info tab
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });
-    await loan.fillClientInfo(clientInfoDetails);
+    await loan.fillClientInfo({ ...clientInfoDetails, email: testEmail });
 
     // Loan Info tab
     await loan.loanInfoTab.click();
@@ -161,7 +169,98 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Verify status changed and toast appeared
     await expect(loan.statusConsentPending).toBeVisible();
     await expect(loan.loanSubmittedToast).toBeVisible();
+    opportunityUrl = page.url();
     console.log(`Loan initiated — Status: Consent Pending`);
-    console.log(`Opportunity: ${page.url()}`);
+    console.log(`Opportunity: ${opportunityUrl}`);
+  });
+
+  test('should receive consent email after initiation', async () => {
+    await allure.allureId('S10');
+
+    // Poll testmail API for the consent email (wait up to 60s)
+    const apiUrl = `https://api.testmail.app/api/json?apikey=${testmailApiKey}&namespace=${testmailNamespace}&tag=${emailTag}&livequery=true&timeout=60000`;
+
+    const response = await page.request.get(apiUrl);
+    expect(response.ok()).toBeTruthy();
+
+    const data = await response.json();
+    console.log(`Testmail response — count: ${data.count}`);
+
+    // Verify at least one email was received
+    expect(data.count).toBeGreaterThan(0);
+
+    const email = data.emails[0];
+    console.log(`Email subject: ${email.subject}`);
+    console.log(`Email from: ${email.from}`);
+    console.log(`Email to: ${email.to}`);
+
+    // Verify email content
+    expect(email.subject).toContain('Action Required: Provide Consent');
+    expect(email.from).toBe('notifications@smartgov.co.za');
+    expect(email.html || email.text).toBeTruthy();
+
+    // Extract consent link from email
+    const htmlBody: string = email.html;
+    const linkMatch = htmlBody.match(/href="(https:\/\/[^"]*individual-application-consent[^"]*)"/);
+    expect(linkMatch).toBeTruthy();
+    consentUrl = linkMatch![1];
+    console.log(`Consent URL: ${consentUrl}`);
+  });
+
+  test('should open consent page and complete OTP signing', async () => {
+    await allure.allureId('S11');
+
+    expect(consentUrl).toBeTruthy();
+    await page.goto(consentUrl);
+    await page.waitForLoadState('networkidle');
+
+    // Verify consent form loaded
+    await expect(loan.consentFormHeading).toBeVisible({ timeout: 30000 });
+    console.log(`Consent page: ${page.url()}`);
+
+    // Record timestamp before requesting OTP so we can query only newer emails
+    const otpRequestedAt = Date.now();
+
+    // Request OTP
+    await loan.requestOtpButton.click();
+    await expect(loan.otpSentToast).toBeVisible({ timeout: 30000 });
+
+    // Fetch OTP email from testmail using livequery (waits for new emails after timestamp)
+    const otpApiUrl = `https://api.testmail.app/api/json?apikey=${testmailApiKey}&namespace=${testmailNamespace}&tag=${emailTag}&livequery=true&timeout=60000&timestamp_from=${otpRequestedAt}`;
+    const otpResponse = await page.request.get(otpApiUrl);
+    expect(otpResponse.ok()).toBeTruthy();
+
+    const otpData = await otpResponse.json();
+    const otpEmail = otpData.emails?.find((e: { subject: string }) => e.subject === 'One-Time-Pin');
+    expect(otpEmail).toBeTruthy();
+
+    const otpMatch = otpEmail.text.match(/Your One-Time-Pin is (\d+)/);
+    expect(otpMatch).toBeTruthy();
+    const otp = otpMatch![1];
+    console.log(`OTP received: ${otp}`);
+
+    // Enter OTP and submit
+    await loan.otpInput.fill(otp);
+    await loan.submitOtpButton.click();
+
+    // Confirm the consent submission dialog
+    await expect(loan.submitConsentConfirmButton).toBeVisible({ timeout: 10000 });
+    await loan.submitConsentConfirmButton.click();
+
+    // Verify success
+    await expect(loan.consentSuccessToast).toBeVisible({ timeout: 30000 });
+    await expect(loan.consentSuccessMessage).toBeVisible();
+    console.log('Consent signed successfully');
+  });
+
+  test('should show Verification In Progress after consent', async () => {
+    await allure.allureId('S12');
+
+    // Navigate back to the opportunity detail page
+    await page.goto(opportunityUrl);
+    await page.waitForLoadState('networkidle');
+
+    await expect(loan.statusVerificationInProgress).toBeVisible({ timeout: 60000 });
+    console.log('Status: Verification In Progress');
   });
 });
