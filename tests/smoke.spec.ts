@@ -159,9 +159,9 @@ test.describe('Smoke Tests — Happy Path', () => {
     await loan.initiateLoanApplication();
 
     // Verify status changed and toast appeared
-    await expect(loan.statusVerificationInProgress).toBeVisible();
+    await expect(loan.statusConsentPending).toBeVisible();
     await expect(loan.loanSubmittedToast).toBeVisible();
-    console.log(`Loan initiated — Status: Verification In Progress`);
+    console.log(`Loan initiated — Status: Consent Pending`);
     console.log(`Opportunity: ${page.url()}`);
   });
 });

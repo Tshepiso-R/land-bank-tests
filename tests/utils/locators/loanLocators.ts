@@ -25,9 +25,11 @@ export class LoanLocators {
 
   // Status
   readonly statusVerificationInProgress: Locator;
+  readonly statusConsentPending: Locator;
 
   // Toast messages
   readonly loanSubmittedToast: Locator;
+  readonly duplicateWorkflowToast: Locator;
 
   // Action buttons (header bar)
   readonly initiateLoanApplicationButton: Locator;
@@ -61,9 +63,11 @@ export class LoanLocators {
 
     // Status
     this.statusVerificationInProgress = page.getByText('Verification In Progress');
+    this.statusConsentPending = page.getByText('Consent Pending');
 
     // Toast messages
     this.loanSubmittedToast = page.getByText('Loan Application submitted successfully');
+    this.duplicateWorkflowToast = page.getByText('An active loan application workflow already exists for this application.');
 
     // Action buttons
     this.initiateLoanApplicationButton = page.getByRole('button', { name: 'Initiate Loan Application' });
@@ -160,7 +164,7 @@ export class LoanLocators {
   async initiateLoanApplication(): Promise<void> {
     await this.initiateLoanApplicationButton.click();
     await expect(this.loanSubmittedToast).toBeVisible({ timeout: 30000 });
-    await expect(this.statusVerificationInProgress).toBeVisible({ timeout: 60000 });
+    await expect(this.statusConsentPending).toBeVisible({ timeout: 60000 });
   }
 
   // --- Edit mode ---
@@ -187,6 +191,10 @@ export class LoanLocators {
   }
 
   // --- Client Info tab field locators ---
+
+  get autoVerifyCheckbox(): Locator {
+    return this.page.getByText('Auto Verify').locator('..').locator('..').getByRole('checkbox');
+  }
 
   get clientIdNumberInput(): Locator {
     return this.formItem(/^Client ID Number/).getByRole('textbox');
@@ -305,6 +313,10 @@ export class LoanLocators {
     provincialOffice?: string;
     maritalStatus?: string;
   }): Promise<void> {
+    // Uncheck Auto Verify if it is checked
+    if (await this.autoVerifyCheckbox.isChecked()) {
+      await this.autoVerifyCheckbox.uncheck();
+    }
     await this.clientIdNumberInput.fill(data.idNumber);
     await this.clientNameInput.fill(data.firstName);
     await this.clientSurnameInput.fill(data.lastName);

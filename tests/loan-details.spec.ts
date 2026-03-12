@@ -118,7 +118,7 @@ test.describe('Loan Details Workflow', () => {
     await loan.initiateLoanApplication();
 
     // Verify status changed and toast appeared
-    await expect(loan.statusVerificationInProgress).toBeVisible();
+    await expect(loan.statusConsentPending).toBeVisible();
     await expect(loan.loanSubmittedToast).toBeVisible();
   });
 
