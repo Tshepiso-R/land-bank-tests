@@ -125,7 +125,15 @@ tests/
 
 ---
 
-## 11. What NOT to Do
+## 11. Debugging and Reuse
+- When fixing or debugging a failing locator/test, do NOT create new leads each run
+- Reuse existing test data (e.g. the converted lead `Link Test`) or a previously created lead
+- Only create a new lead when the test specifically requires fresh data
+- For workflow tests (serial), run only the failing test in isolation to save time
+
+---
+
+## 12. What NOT to Do
 - Do NOT use `page.waitForTimeout()`
 - Do NOT hardcode selectors in spec files
 - Do NOT hardcode credentials anywhere

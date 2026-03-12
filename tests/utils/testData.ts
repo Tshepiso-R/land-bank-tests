@@ -25,6 +25,7 @@ export const validLead = {
 export const convertedLead = {
   firstName: 'Link',
   lastName: 'Test',
+  accountName: 'Link Test',
 };
 
 export const invalidEmails = ['notanemail', 'missing@', '@nodomain', 'spaces in@email.com'];
@@ -42,3 +43,43 @@ export const requiredFields = [
 ] as const;
 
 export type RequiredFieldKey = typeof requiredFields[number]['field'];
+
+// --- Pre-Screening Questionnaire ---
+// Questions where "Yes" answer = pass pre-screening
+export const preScreeningPassYes = [
+  'Is the applicant a South African citizen?',
+  'Is the farming land located in South Africa?',
+  'Do the intended farming activities fall within the Land Bank mandate?',
+  "Is the client's current Country of Residence South Africa?",
+  'Does the client currently have access to suitable land for farming activities?',
+];
+// Questions where "No" answer = pass pre-screening
+export const preScreeningPassNo = [
+  'Is the client blacklisted?',
+  'Is the client currently under debt review?',
+];
+
+// --- Loan / Opportunity test data ---
+
+export const clientInfoDetails = {
+  idNumber: '7708206169188',
+  firstName: 'Ian',
+  lastName: 'Houvet',
+  email: 'promise.raganya@boxfusion.io',
+};
+
+export const loanInfo = {
+  summary: 'Automated test loan summary',
+  amount: '50000',
+};
+
+export const farmData = {
+  name: 'Boxfusion',
+  landTenureStatus: 'Owned',
+  typesOfFarming: ['Aqua Culture', 'Cash Crops - General'],
+  size: '2300',
+  province: 'Limpopo',
+  region: 'Central Region',
+};
+
+export const assignedTo = 'Fatima Abrahams';

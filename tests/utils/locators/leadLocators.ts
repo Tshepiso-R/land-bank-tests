@@ -1,4 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { preScreeningPassYes, preScreeningPassNo } from '../testData';
 
 export class LeadLocators {
   readonly page: Page;
@@ -259,6 +260,42 @@ export class LeadLocators {
 
   get notesTab(): Locator {
     return this.page.getByRole('tab', { name: 'Notes' });
+  }
+
+  // --- Pre-Screening Questionnaire ---
+
+  get preScreeningDialog(): Locator {
+    return this.page.getByText('Pre-Screening Questionnaire').locator('..');
+  }
+
+  get preScreeningQuestionnaireHeading(): Locator {
+    return this.page.getByText('Pre-Screening Questionnaire');
+  }
+
+  /**
+   * Answer all pre-screening questions to pass.
+   * For passing: Yes to all positive questions, No to blacklisted & debt review.
+   */
+  async completePreScreeningToPass(): Promise<void> {
+    await this.initiatePreScreeningButton.click();
+    await expect(this.preScreeningQuestionnaireHeading).toBeVisible({ timeout: 30000 });
+
+    for (const question of preScreeningPassYes) {
+      const questionRow = this.page.getByText(question).locator('..');
+      await questionRow.getByRole('radio', { name: 'Yes' }).click();
+    }
+
+    for (const question of preScreeningPassNo) {
+      const questionRow = this.page.getByText(question).locator('..');
+      await questionRow.getByRole('radio', { name: 'No' }).click();
+    }
+
+    // Submit the questionnaire — look for a Submit/OK button
+    const submitBtn = this.page.getByRole('button', { name: /Submit|OK|Save/i });
+    await submitBtn.click();
+
+    // Wait for conversion
+    await expect(this.statusConverted).toBeVisible({ timeout: 60000 });
   }
 
   // --- Detail Page header locators ---
