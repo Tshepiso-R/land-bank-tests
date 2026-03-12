@@ -100,7 +100,7 @@ export class LeadLocators {
     );
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
-    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async selectClientType(clientType: string): Promise<void> {
@@ -109,7 +109,7 @@ export class LeadLocators {
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
     // Wait for the dropdown to close before interacting with the next field
-    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async selectProvince(province: string): Promise<void> {
@@ -119,7 +119,7 @@ export class LeadLocators {
     );
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
-    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async selectPreferredCommunication(comm: string): Promise<void> {
@@ -127,7 +127,7 @@ export class LeadLocators {
     const option = this.page.getByTitle(comm, { exact: true });
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
-    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async selectLeadChannel(channel: string): Promise<void> {
@@ -135,7 +135,7 @@ export class LeadLocators {
     const option = this.page.getByTitle(channel, { exact: true });
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
-    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async fillAllFields(data: {

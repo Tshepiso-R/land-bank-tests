@@ -23,6 +23,12 @@ export class LoanLocators {
   // Top-level tab panels
   readonly loanApplicationDetailsPanel: Locator;
 
+  // Status
+  readonly statusVerificationInProgress: Locator;
+
+  // Toast messages
+  readonly loanSubmittedToast: Locator;
+
   // Action buttons (header bar)
   readonly initiateLoanApplicationButton: Locator;
   readonly editButton: Locator;
@@ -52,6 +58,12 @@ export class LoanLocators {
 
     // The main panel that confirms the Opportunity page loaded
     this.loanApplicationDetailsPanel = page.getByText('Loan Application Details').first();
+
+    // Status
+    this.statusVerificationInProgress = page.getByText('Verification In Progress');
+
+    // Toast messages
+    this.loanSubmittedToast = page.getByText('Loan Application submitted successfully');
 
     // Action buttons
     this.initiateLoanApplicationButton = page.getByRole('button', { name: 'Initiate Loan Application' });
@@ -147,8 +159,8 @@ export class LoanLocators {
 
   async initiateLoanApplication(): Promise<void> {
     await this.initiateLoanApplicationButton.click();
-    // After initiation the status changes from Draft (e.g. to Complete)
-    await expect(this.page.getByText('Draft')).toBeHidden({ timeout: 60000 });
+    await expect(this.loanSubmittedToast).toBeVisible({ timeout: 30000 });
+    await expect(this.statusVerificationInProgress).toBeVisible({ timeout: 60000 });
   }
 
   // --- Edit mode ---
@@ -259,7 +271,7 @@ export class LoanLocators {
     const option = activePopup.locator('.ant-select-item-option').filter({ hasText: optionText });
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
-    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async selectDropdownByTitle(dropdown: Locator, optionTitle: string): Promise<void> {
@@ -276,7 +288,7 @@ export class LoanLocators {
     const option = this.page.getByTitle(optionTitle);
     await expect(option.first()).toBeVisible({ timeout: 10000 });
     await option.first().click();
-    await expect(option.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(option.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
   }
 
   async fillClientInfo(data: {
@@ -490,13 +502,13 @@ export class LoanLocators {
     const provOption = this.page.locator('.ant-select-item-option').filter({ hasText: data.province });
     await expect(provOption.first()).toBeVisible({ timeout: 10000 });
     await provOption.first().click();
-    await expect(provOption.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(provOption.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
 
     await this.farmRegionDropdown.click();
     const regOption = this.page.locator('.ant-select-item-option').filter({ hasText: data.region });
     await expect(regOption.first()).toBeVisible({ timeout: 10000 });
     await regOption.first().click();
-    await expect(regOption.first()).toBeHidden({ timeout: 5000 }).catch(() => {});
+    await expect(regOption.first()).toBeHidden({ timeout: 2000 }).catch(() => {});
 
     await this.farmDialogOkButton.click();
     await expect(this.createFarmDialog).toBeHidden({ timeout: 30000 });

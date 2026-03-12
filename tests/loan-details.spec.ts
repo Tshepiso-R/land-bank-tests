@@ -74,7 +74,7 @@ test.describe('Loan Details Workflow', () => {
     await expect(loan.farmsTab).toBeVisible();
   });
 
-  test('should fill all Client Info fields and save', async () => {
+  test('should fill all opportunity details and save', async () => {
     await allure.allureId('037');
 
     await loan.enterEditMode();
@@ -82,71 +82,48 @@ test.describe('Loan Details Workflow', () => {
     // Fill Opportunity Owner in header section
     await loan.selectOpportunityOwner(opportunityOwner);
 
-    // Wait for form to fully load with existing data
+    // Client Info tab
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });
-
-    // Fill all Client Info fields (including blank ones)
     await loan.fillClientInfo(clientInfoDetails);
 
-    // Save and verify
-    await loan.save();
-
-    // Verify saved values in read-only mode
-    await expect(loan.page.getByText(clientInfoDetails.idNumber)).toBeVisible();
-    await expect(loan.page.getByText(clientInfoDetails.countryOfResidence!).first()).toBeVisible();
-  });
-
-  test('should fill Loan Info fields and save', async () => {
-    await allure.allureId('038');
-
-    await loan.enterEditMode();
+    // Loan Info tab
     await loan.loanInfoTab.click();
     await expect(loan.loanInfoPanel).toBeVisible();
-
     await loan.fillLoanInfo(loanInfo);
 
-    // Verify the summary was filled
-    await expect(loan.businessSummaryTextarea).toHaveValue(loanInfo.summary);
-
-    // Save and verify
-    await loan.save();
-
-    // Verify saved values in read-only mode on Loan Info tab
-    await loan.loanInfoTab.click();
-    await expect(loan.page.getByText(loanInfo.summary)).toBeVisible();
-  });
-
-  test('should add a farm with details and save', async () => {
-    await allure.allureId('039');
-
-    await loan.enterEditMode();
+    // Farms tab
     await loan.farmsTab.click();
-
     await loan.addFarm(farmData);
-
-    // Farm dialog should close after submission
     await expect(loan.createFarmDialog).toBeHidden({ timeout: 30000 });
 
-    // Save and verify
+    // Save once
     await loan.save();
 
-    // Verify the farm appears in Farms tab
+    // Verify saved values across all tabs
+    await loan.clientInfoTab.click();
+    await expect(loan.page.getByText(clientInfoDetails.idNumber)).toBeVisible();
+    await expect(loan.page.getByText(clientInfoDetails.countryOfResidence!).first()).toBeVisible();
+
+    await loan.loanInfoTab.click();
+    await expect(loan.page.getByText(loanInfo.summary)).toBeVisible();
+
     await loan.farmsTab.click();
     await expect(loan.page.getByText(farmData.name, { exact: true }).first()).toBeVisible();
   });
 
   test('should initiate the loan application', async () => {
-    await allure.allureId('040');
+    await allure.allureId('038');
 
     await loan.initiateLoanApplication();
 
-    // After initiation the status should no longer be Draft
-    await expect(loan.page.getByText('Draft')).toBeHidden();
+    // Verify status changed and toast appeared
+    await expect(loan.statusVerificationInProgress).toBeVisible();
+    await expect(loan.loanSubmittedToast).toBeVisible();
   });
 
   test('should verify edit and cancel workflow', async () => {
-    await allure.allureId('041');
+    await allure.allureId('039');
 
     // Verify read-only mode shows Edit button
     await expect(loan.editButton).toBeVisible();

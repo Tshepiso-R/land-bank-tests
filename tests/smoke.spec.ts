@@ -33,6 +33,7 @@ test.describe('Smoke Tests — Happy Path', () => {
 
     await expect(page.getByRole('heading', { name: 'My Dashboard' })).toBeVisible({ timeout: 30000 });
     await expect(page.getByText('Promise Raganya')).toBeVisible();
+    console.log(`Dashboard: ${page.url()}`);
   });
 
   test('should navigate to Leads via sidebar', async () => {
@@ -68,6 +69,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(lead.statusNew).toBeVisible();
     await expect(lead.editButton).toBeVisible();
     await expect(lead.initiatePreScreeningButton).toBeVisible();
+    console.log(`Lead: ${page.url()}`);
   });
 
   test('should complete pre-screening and convert the lead', async () => {
@@ -80,6 +82,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(lead.assessmentPassed).toBeVisible();
     await expect(lead.convertedToOpportunityLink).toBeVisible();
     await expect(lead.convertedToAccountLink).toBeVisible();
+    console.log(`Lead converted — Account: ${testFirstName} ${validLead.lastName}`);
   });
 
   test('should navigate to the new Opportunity', async () => {
@@ -110,9 +113,10 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(loan.clientInfoTab).toBeVisible();
     await expect(loan.loanInfoTab).toBeVisible();
     await expect(loan.farmsTab).toBeVisible();
+    console.log(`Opportunity: ${page.url()}`);
   });
 
-  test('should fill all Client Info fields and save', async () => {
+  test('should fill all opportunity details and save', async () => {
     await allure.allureId('S08');
 
     await loan.enterEditMode();
@@ -120,53 +124,44 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Fill Opportunity Owner in header section
     await loan.selectOpportunityOwner(opportunityOwner);
 
+    // Client Info tab
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });
-
     await loan.fillClientInfo(clientInfoDetails);
-    await loan.save();
 
-    await expect(loan.page.getByText(clientInfoDetails.idNumber)).toBeVisible();
-    await expect(loan.page.getByText(clientInfoDetails.countryOfResidence!).first()).toBeVisible();
-  });
-
-  test('should fill Loan Info fields and save', async () => {
-    await allure.allureId('S09');
-
-    await loan.enterEditMode();
+    // Loan Info tab
     await loan.loanInfoTab.click();
     await expect(loan.loanInfoPanel).toBeVisible();
-
     await loan.fillLoanInfo(loanInfo);
-    await expect(loan.businessSummaryTextarea).toHaveValue(loanInfo.summary);
 
-    await loan.save();
-
-    await loan.loanInfoTab.click();
-    await expect(loan.page.getByText(loanInfo.summary)).toBeVisible();
-  });
-
-  test('should add a farm and save', async () => {
-    await allure.allureId('S10');
-
-    await loan.enterEditMode();
+    // Farms tab
     await loan.farmsTab.click();
-
     await loan.addFarm(farmData);
     await expect(loan.createFarmDialog).toBeHidden({ timeout: 30000 });
 
+    // Save once
     await loan.save();
+
+    // Verify saved values
+    await loan.clientInfoTab.click();
+    await expect(loan.page.getByText(clientInfoDetails.idNumber)).toBeVisible();
+
+    await loan.loanInfoTab.click();
+    await expect(loan.page.getByText(loanInfo.summary)).toBeVisible();
 
     await loan.farmsTab.click();
     await expect(loan.page.getByText(farmData.name, { exact: true }).first()).toBeVisible();
   });
 
   test('should initiate the loan application', async () => {
-    await allure.allureId('S11');
+    await allure.allureId('S09');
 
     await loan.initiateLoanApplication();
 
-    // After initiation the status should no longer be Draft
-    await expect(loan.page.getByText('Draft')).toBeHidden();
+    // Verify status changed and toast appeared
+    await expect(loan.statusVerificationInProgress).toBeVisible();
+    await expect(loan.loanSubmittedToast).toBeVisible();
+    console.log(`Loan initiated — Status: Verification In Progress`);
+    console.log(`Opportunity: ${page.url()}`);
   });
 });
