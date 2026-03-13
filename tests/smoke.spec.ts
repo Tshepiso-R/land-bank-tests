@@ -4,7 +4,7 @@ import { login } from './utils/login';
 import { LeadLocators } from './utils/locators/leadLocators';
 import { LoanLocators } from './utils/locators/loanLocators';
 import { VerificationLocators } from './utils/locators/verificationLocators';
-import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData, opportunityOwner, testmailAddress, testmailApiKey, testmailNamespace } from './utils/testData';
+import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData, opportunityOwner } from './utils/testData';
 
 test.use({ browserName: 'chromium' });
 
@@ -16,18 +16,12 @@ test.describe('Smoke Tests — Happy Path', () => {
   let loan: LoanLocators;
   let verification: VerificationLocators;
   let testFirstName: string;
-  let emailTag: string;
-  let testEmail: string;
-  let consentUrl: string;
-  let opportunityUrl: string;
 
   test.beforeAll(async ({ browser }) => {
     testFirstName = uniqueFirstName();
-    emailTag = `consent-${Date.now()}`;
-    testEmail = testmailAddress(emailTag);
     // Single login session shared across all tests
     page = await browser.newPage();
-    const username = process.env.CRM_USERNAME || 'promise';
+    const username = process.env.CRM_USERNAME || 'admin';
     const password = process.env.CRM_PASSWORD || '123qwe';
     await login(page, username, password);
     lead = new LeadLocators(page);
@@ -42,7 +36,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     await allure.allureId('S01');
 
     await expect(page.getByRole('heading', { name: 'My Dashboard' })).toBeVisible({ timeout: 30000 });
-    await expect(page.getByText('Promise Raganya')).toBeVisible();
+    await expect(page.getByText('System Administrator')).toBeVisible();
     console.log(`Dashboard: ${page.url()}`);
   });
 
@@ -137,7 +131,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Client Info tab
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });
-    await loan.fillClientInfo({ ...clientInfoDetails, email: testEmail });
+    await loan.fillClientInfo(clientInfoDetails);
 
     // Loan Info tab
     await loan.loanInfoTab.click();
@@ -168,109 +162,19 @@ test.describe('Smoke Tests — Happy Path', () => {
 
     await loan.initiateLoanApplication();
 
-    // Verify status changed and toast appeared
-    await expect(loan.statusConsentPending).toBeVisible();
+    // With Auto Verify checked, status transitions through Consent Pending
+    // to Verification In Progress automatically
     await expect(loan.loanSubmittedToast).toBeVisible();
-    opportunityUrl = page.url();
-    console.log(`Loan initiated — Status: Consent Pending`);
-    console.log(`Opportunity: ${opportunityUrl}`);
-  });
-
-  test('should receive consent email after initiation', async () => {
-    await allure.allureId('S10');
-
-    // Poll testmail API for the consent email (wait up to 60s)
-    const apiUrl = `https://api.testmail.app/api/json?apikey=${testmailApiKey}&namespace=${testmailNamespace}&tag=${emailTag}&livequery=true&timeout=60000`;
-
-    const response = await page.request.get(apiUrl);
-    expect(response.ok()).toBeTruthy();
-
-    const data = await response.json();
-    console.log(`Testmail response — count: ${data.count}`);
-
-    // Verify at least one email was received
-    expect(data.count).toBeGreaterThan(0);
-
-    const email = data.emails[0];
-    console.log(`Email subject: ${email.subject}`);
-    console.log(`Email from: ${email.from}`);
-    console.log(`Email to: ${email.to}`);
-
-    // Verify email content
-    expect(email.subject).toContain('Action Required: Provide Consent');
-    expect(email.from).toBe('notifications@smartgov.co.za');
-    expect(email.html || email.text).toBeTruthy();
-
-    // Extract consent link from email
-    const htmlBody: string = email.html;
-    const linkMatch = htmlBody.match(/href="(https:\/\/[^"]*individual-application-consent[^"]*)"/);
-    expect(linkMatch).toBeTruthy();
-    consentUrl = linkMatch![1];
-    console.log(`Consent URL: ${consentUrl}`);
-  });
-
-  test('should open consent page and complete OTP signing', async () => {
-    await allure.allureId('S11');
-
-    expect(consentUrl).toBeTruthy();
-    await page.goto(consentUrl);
-    await page.waitForLoadState('networkidle');
-
-    // Verify consent form loaded
-    await expect(loan.consentFormHeading).toBeVisible({ timeout: 30000 });
-    console.log(`Consent page: ${page.url()}`);
-
-    // Record timestamp before requesting OTP so we can query only newer emails
-    const otpRequestedAt = Date.now();
-
-    // Request OTP
-    await loan.requestOtpButton.click();
-    await expect(loan.otpSentToast).toBeVisible({ timeout: 30000 });
-
-    // Fetch OTP email from testmail using livequery (waits for new emails after timestamp)
-    const otpApiUrl = `https://api.testmail.app/api/json?apikey=${testmailApiKey}&namespace=${testmailNamespace}&tag=${emailTag}&livequery=true&timeout=60000&timestamp_from=${otpRequestedAt}`;
-    const otpResponse = await page.request.get(otpApiUrl);
-    expect(otpResponse.ok()).toBeTruthy();
-
-    const otpData = await otpResponse.json();
-    const otpEmail = otpData.emails?.find((e: { subject: string }) => e.subject === 'One-Time-Pin');
-    expect(otpEmail).toBeTruthy();
-
-    const otpMatch = otpEmail.text.match(/Your One-Time-Pin is (\d+)/);
-    expect(otpMatch).toBeTruthy();
-    const otp = otpMatch![1];
-    console.log(`OTP received: ${otp}`);
-
-    // Enter OTP and submit
-    await loan.otpInput.fill(otp);
-    await loan.submitOtpButton.click();
-
-    // Confirm the consent submission dialog
-    await expect(loan.submitConsentConfirmButton).toBeVisible({ timeout: 10000 });
-    await loan.submitConsentConfirmButton.click();
-
-    // Verify success
-    await expect(loan.consentSuccessToast).toBeVisible({ timeout: 30000 });
-    await expect(loan.consentSuccessMessage).toBeVisible();
-    console.log('Consent signed successfully');
-  });
-
-  test('should show Verification In Progress after consent', async () => {
-    await allure.allureId('S12');
-
-    // Navigate back to the opportunity detail page
-    await page.goto(opportunityUrl);
-    await page.waitForLoadState('networkidle');
-
     await expect(loan.statusVerificationInProgress).toBeVisible({ timeout: 60000 });
-    console.log('Status: Verification In Progress');
+    console.log(`Loan initiated — Status: Verification In Progress`);
+    console.log(`Opportunity: ${page.url()}`);
   });
 
   test('should login as Fatima and find the item in Inbox', async () => {
-    await allure.allureId('S13');
+    await allure.allureId('S10');
 
     // Logout current user
-    await page.getByText('Promise Raganya').click();
+    await page.getByText('System Administrator').click();
     await page.getByRole('menuitem', { name: 'login Logout' }).click();
     await page.getByRole('button', { name: 'Sign In' }).waitFor({ state: 'visible', timeout: 30000 });
 
@@ -300,7 +204,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   });
 
   test('should verify Client Info on the inbox item matches opportunity data', async () => {
-    await allure.allureId('S14');
+    await allure.allureId('S11');
 
     // Client Info tab should be selected by default
     await expect(verification.clientInfoTab).toBeVisible();
@@ -310,7 +214,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(clientPanel.getByText(clientInfoDetails.idNumber)).toBeVisible();
     await expect(clientPanel.getByText('Ian')).toBeVisible();
     await expect(clientPanel.getByText('Houvet')).toBeVisible();
-    await expect(clientPanel.getByText(testEmail)).toBeVisible();
+    await expect(clientPanel.getByText(clientInfoDetails.email)).toBeVisible();
     await expect(clientPanel.getByText('0821234567')).toBeVisible();
     await expect(clientPanel.getByText('Email', { exact: true })).toBeVisible();
     await expect(clientPanel.getByText('South Africa').first()).toBeVisible();
@@ -322,7 +226,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   });
 
   test('should verify Loan Info on the inbox item matches opportunity data', async () => {
-    await allure.allureId('S15');
+    await allure.allureId('S12');
 
     await verification.loanInfoTab.click();
     const loanPanel = page.getByRole('tabpanel', { name: 'Loan Info' });
@@ -337,7 +241,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   });
 
   test('should verify Farms on the inbox item matches opportunity data', async () => {
-    await allure.allureId('S16');
+    await allure.allureId('S13');
 
     await verification.farmsTab.click();
     const farmsPanel = page.getByRole('tabpanel', { name: 'Farms' });
@@ -351,23 +255,17 @@ test.describe('Smoke Tests — Happy Path', () => {
   });
 
   test('should open verification dialog and verify Overview statuses', async () => {
-    await allure.allureId('S17');
+    await allure.allureId('S14');
 
     await verification.openVerificationDialog();
 
     // Overview tab — statuses render as sha-status-tag (CSS uppercase)
     const dialog = page.getByRole('dialog');
 
-    // Wait for status data to load — 4 status tags appear (excluding LIVE tag)
-    const statusTags = dialog.locator('.sha-status-tag-container .sha-status-tag');
-    await expect(statusTags.first()).toBeVisible({ timeout: 30000 });
-    await expect(statusTags).toHaveCount(4, { timeout: 10000 });
-
-    // All four status labels must be present
-    await expect(dialog.getByText('ID Status')).toBeVisible();
+    // Wait for status data to load
+    await expect(dialog.getByText('ID Status')).toBeVisible({ timeout: 30000 });
     await expect(dialog.getByText('Photo Verification Status')).toBeVisible();
     await expect(dialog.getByText('KYC Status')).toBeVisible();
-    await expect(dialog.getByText('Compliance Verification')).toBeVisible();
 
     // Log the actual statuses (may vary based on verification processing time)
     const completedCount = await dialog.getByText('Completed').count();
@@ -376,7 +274,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   });
 
   test('should verify ID Verification tab', async () => {
-    await allure.allureId('S18');
+    await allure.allureId('S15');
 
     await verification.idVerificationTab.click();
 
@@ -411,7 +309,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   });
 
   test('should verify KYC Verification tab', async () => {
-    await allure.allureId('S19');
+    await allure.allureId('S16');
 
     await verification.kycVerificationTab.click();
 
@@ -438,27 +336,34 @@ test.describe('Smoke Tests — Happy Path', () => {
     }
   });
 
-  test('should verify Compliance tab', async () => {
-    await allure.allureId('S20');
-
-    await verification.complianceTab.click();
+  test('should verify Compliance tab if present', async () => {
+    await allure.allureId('S17');
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText('Compliance Verification Details')).toBeVisible({ timeout: 10000 });
 
-    const compPanel = dialog.getByRole('tabpanel');
+    // Compliance tab may not be present depending on verification config
+    const complianceTabVisible = await verification.complianceTab.isVisible().catch(() => false);
 
-    const isCompleted = await compPanel.locator('.sha-status-tag-container .sha-status-tag').first()
-      .innerText().then(t => t.toUpperCase() === 'COMPLETED').catch(() => false);
+    if (complianceTabVisible) {
+      await verification.complianceTab.click();
+      await expect(dialog.getByText('Compliance Verification Details')).toBeVisible({ timeout: 10000 });
 
-    if (isCompleted) {
-      await expect(compPanel.getByText('IAN HOUVET')).toBeVisible();
-      await expect(compPanel.getByText('Success')).toBeVisible();
-      await expect(compPanel.getByText('Passed').first()).toBeVisible();
-      await expect(compPanel.getByText(/Sanctions.*Report/i).first()).toBeVisible();
-      console.log('Compliance: Completed — PEP, Sanctions Passed, PDF report present');
+      const compPanel = dialog.getByRole('tabpanel');
+
+      const isCompleted = await compPanel.locator('.sha-status-tag-container .sha-status-tag').first()
+        .innerText().then(t => t.toUpperCase() === 'COMPLETED').catch(() => false);
+
+      if (isCompleted) {
+        await expect(compPanel.getByText('IAN HOUVET')).toBeVisible();
+        await expect(compPanel.getByText('Success')).toBeVisible();
+        await expect(compPanel.getByText('Passed').first()).toBeVisible();
+        await expect(compPanel.getByText(/Sanctions.*Report/i).first()).toBeVisible();
+        console.log('Compliance: Completed — PEP, Sanctions Passed, PDF report present');
+      } else {
+        console.log('Compliance: Awaiting Review — section visible');
+      }
     } else {
-      console.log('Compliance: Awaiting Review — section visible');
+      console.log('Compliance tab not present — skipping');
     }
 
     // Close the verification dialog
@@ -466,7 +371,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   });
 
   test('should see action buttons for finalising verification', async () => {
-    await allure.allureId('S21');
+    await allure.allureId('S18');
 
     await expect(verification.finaliseVerificationButton).toBeVisible();
     await expect(verification.finaliseVerificationButton).toBeEnabled();

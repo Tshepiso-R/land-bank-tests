@@ -72,13 +72,8 @@ export class VerificationLocators {
   // --- Navigation ---
 
   async navigateToInbox(): Promise<void> {
-    // Expand sidebar if collapsed
-    const menuUnfold = this.page.getByRole('img', { name: 'menu-unfold' });
-    if (await menuUnfold.isVisible().catch(() => false)) {
-      await menuUnfold.click();
-      await this.page.getByRole('img', { name: 'menu-fold' }).waitFor({ state: 'visible', timeout: 10000 });
-    }
-    await this.inboxLink.click();
+    // Navigate directly via URL (sidebar may not have Inbox link for all roles)
+    await this.page.goto('/dynamic/Shesha.Workflow/workflows-inbox');
     await expect(this.inboxHeading).toBeVisible({ timeout: 60000 });
   }
 

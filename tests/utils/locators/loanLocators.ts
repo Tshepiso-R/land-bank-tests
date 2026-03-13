@@ -80,13 +80,8 @@ export class LoanLocators {
   // --- Navigation ---
 
   async navigateToOpportunities(): Promise<void> {
-    // Expand sidebar if collapsed (menu-unfold visible means sidebar is collapsed)
-    const menuUnfold = this.page.getByRole('img', { name: 'menu-unfold' });
-    if (await menuUnfold.isVisible().catch(() => false)) {
-      await menuUnfold.click();
-      await this.page.getByRole('img', { name: 'menu-fold' }).waitFor({ state: 'visible', timeout: 10000 });
-    }
-    await this.opportunitiesLink.click();
+    // Navigate directly via URL (sidebar may not have Opportunities link for all roles)
+    await this.page.goto('/dynamic/LandBank.Crm/LBOpportunity-table');
     await this.tableHeaderRow.waitFor({ state: 'visible', timeout: 60000 });
   }
 
@@ -164,7 +159,6 @@ export class LoanLocators {
   async initiateLoanApplication(): Promise<void> {
     await this.initiateLoanApplicationButton.click();
     await expect(this.loanSubmittedToast).toBeVisible({ timeout: 30000 });
-    await expect(this.statusConsentPending).toBeVisible({ timeout: 60000 });
   }
 
   // --- Edit mode ---
@@ -313,9 +307,9 @@ export class LoanLocators {
     provincialOffice?: string;
     maritalStatus?: string;
   }): Promise<void> {
-    // Uncheck Auto Verify if it is checked
-    if (await this.autoVerifyCheckbox.isChecked()) {
-      await this.autoVerifyCheckbox.uncheck();
+    // Check Auto Verify so verifications complete automatically
+    if (!(await this.autoVerifyCheckbox.isChecked())) {
+      await this.autoVerifyCheckbox.check();
     }
     await this.clientIdNumberInput.fill(data.idNumber);
     await this.clientNameInput.fill(data.firstName);

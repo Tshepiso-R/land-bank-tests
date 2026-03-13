@@ -78,13 +78,8 @@ export class LeadLocators {
   // --- Helper methods ---
 
   async navigateToLeads(): Promise<void> {
-    // Expand sidebar if collapsed (menu-unfold visible means sidebar is collapsed)
-    const menuUnfold = this.page.getByRole('img', { name: 'menu-unfold' });
-    if (await menuUnfold.isVisible().catch(() => false)) {
-      await menuUnfold.click();
-      await this.page.getByRole('img', { name: 'menu-fold' }).waitFor({ state: 'visible', timeout: 10000 });
-    }
-    await this.leadsLink.click();
+    // Navigate directly via URL (sidebar may not have Leads link for all roles)
+    await this.page.goto('/dynamic/LandBank.Crm/LBLead-table');
     await this.tableHeaderRow.waitFor({ state: 'visible', timeout: 60000 });
   }
 
