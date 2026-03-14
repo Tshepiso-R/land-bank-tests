@@ -104,3 +104,17 @@ export const farmData = {
 
 export const assignedTo = 'Fatima Abrahams';
 export const opportunityOwner = 'Fatima Abrahams';
+
+// --- Onboarding Checklist test data ---
+
+export const onboardingChecklist = {
+  yearsOfFarmingExperience: '4 to 6 Years',
+  waterUseRights: true,
+  businessPlanSupport: false,
+  equipmentAccess: true,
+  taxClearance: true,
+  marketAccess: true,
+  financialRecords: true,
+  mentorEngaged: false,
+  laborLawCompliant: true,
+};

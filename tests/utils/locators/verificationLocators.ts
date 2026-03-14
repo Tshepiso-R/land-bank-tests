@@ -108,6 +108,112 @@ export class VerificationLocators {
     await expect(this.page.getByRole('dialog')).toBeHidden({ timeout: 10000 });
   }
 
+  // --- Review / Approval helpers ---
+
+  /** Approve ID Verification: select "Approve" from Review Decision dropdown and click Submit */
+  async approveIdVerification(): Promise<void> {
+    const dialog = this.page.getByRole('dialog');
+    await this.idVerificationTab.click();
+    await expect(dialog.getByText('ID Verification Details')).toBeVisible({ timeout: 5000 });
+
+    // Scroll to bottom of dialog to reveal Review Decision dropdown
+    const modalBody = dialog.locator('.ant-modal-body');
+    await modalBody.evaluate(el => el.scrollTo(0, el.scrollHeight));
+
+    // Select "Approve" from Review Decision dropdown — scope to ID Verification label
+    const reviewDecisionDropdown = dialog.locator('.ant-form-item').filter({ hasText: /Id Verification Review Decision|Review Decision/ }).locator('.ant-select').first();
+    await reviewDecisionDropdown.scrollIntoViewIfNeeded();
+    await reviewDecisionDropdown.click();
+    const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
+    const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
+    await expect(approveOption).toBeVisible({ timeout: 5000 });
+    await approveOption.click();
+
+    // Click Submit
+    const submitButton = dialog.getByRole('button', { name: 'Submit' });
+    await submitButton.scrollIntoViewIfNeeded();
+    await submitButton.click();
+
+    // Wait for success indication (toast or status change)
+    await this.page.waitForLoadState('networkidle');
+    console.log('ID Verification: Approved');
+  }
+
+  /** Approve KYC Verification: select "Approve" from First Name Review Decision dropdown */
+  async approveKycVerification(): Promise<void> {
+    const dialog = this.page.getByRole('dialog');
+    await this.kycVerificationTab.click();
+    await expect(dialog.getByText('KYC Verification Details')).toBeVisible({ timeout: 5000 });
+
+    // Scroll all scrollable ancestors of the Review Decision section to reveal the dropdown
+    await dialog.evaluate((dlg) => {
+      const el = Array.from(dlg.querySelectorAll('*')).find(e => e.textContent?.includes('Review Decision') && e.querySelector('.ant-select'));
+      if (el) {
+        let parent = el.parentElement;
+        while (parent && parent !== dlg) {
+          if (parent.scrollHeight > parent.clientHeight) {
+            parent.scrollTop = parent.scrollHeight;
+          }
+          parent = parent.parentElement;
+        }
+        el.scrollIntoView({ block: 'center' });
+      }
+    });
+
+    // Click the KYC Review Decision dropdown — scope to the specific KYC label to avoid matching hidden ID tab's dropdown
+    const reviewDecisionDropdown = dialog.locator('.ant-form-item').filter({ hasText: /Kyc Verification First Name/ }).locator('.ant-select').first();
+    await expect(reviewDecisionDropdown).toBeVisible({ timeout: 5000 });
+    await reviewDecisionDropdown.click();
+    const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
+    const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
+    await expect(approveOption).toBeVisible({ timeout: 5000 });
+    await approveOption.click();
+
+    await this.page.waitForLoadState('networkidle');
+    console.log('KYC Verification: Approved');
+  }
+
+  /** Approve Compliance if tab is present */
+  async approveComplianceIfPresent(): Promise<void> {
+    const compTabVisible = await this.complianceTab.isVisible().catch(() => false);
+    if (!compTabVisible) {
+      console.log('Compliance tab not present — skipping approval');
+      return;
+    }
+
+    const dialog = this.page.getByRole('dialog');
+    await this.complianceTab.click();
+    await expect(dialog.getByText('Compliance Verification Details')).toBeVisible({ timeout: 5000 });
+
+    // Scroll to bottom of dialog to reveal Review Decision dropdowns
+    const modalBody = dialog.locator('.ant-modal-body');
+    await modalBody.evaluate(el => el.scrollTo(0, el.scrollHeight));
+
+    // Look for visible review decision dropdowns on Compliance tab and approve them
+    // Use the active tab pane to avoid matching hidden dropdowns from other tabs
+    const activePane = dialog.locator('.ant-tabs-tabpane-active').first();
+    const reviewDropdowns = activePane.locator('.ant-form-item').filter({ hasText: /Review Decision/ }).locator('.ant-select');
+    const count = await reviewDropdowns.count();
+    for (let i = 0; i < count; i++) {
+      await reviewDropdowns.nth(i).scrollIntoViewIfNeeded();
+      await reviewDropdowns.nth(i).click();
+      const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
+      const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
+      if (await approveOption.isVisible().catch(() => false)) {
+        await approveOption.click();
+      }
+    }
+
+    await this.page.waitForLoadState('networkidle');
+    console.log('Compliance: Approved');
+  }
+
+  /** Finalise verification outcomes — clicks the button and waits for status change */
+  async finaliseVerification(): Promise<void> {
+    await this.finaliseVerificationButton.click();
+    // The page auto-navigates to the next workflow step — caller should wait for the new heading
+  }
+
   // --- Read-only field value helpers ---
 
   fieldValue(label: string): Locator {
