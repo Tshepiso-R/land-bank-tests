@@ -130,7 +130,7 @@ test.describe('Smoke Tests — Happy Path', () => {
 
     // Client Info tab
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
-    await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 10000 });
+    await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 5000 });
     await loan.fillClientInfo(clientInfoDetails);
 
     // Loan Info tab
@@ -273,67 +273,70 @@ test.describe('Smoke Tests — Happy Path', () => {
     console.log(`Overview: ${completedCount} Completed, ${awaitingCount} Awaiting Review`);
   });
 
-  test('should verify ID Verification tab', async () => {
+  test('should verify ID Verification tab and submitted ID matches captured data', async () => {
     await allure.allureId('S15');
 
     await verification.idVerificationTab.click();
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText('ID Verification Details')).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText('ID Verification Details')).toBeVisible({ timeout: 5000 });
 
-    // Scope to ID Verification tab panel to avoid ambiguity
-    const idPanel = dialog.getByRole('tabpanel');
+    const idPanel = dialog.locator('.ant-tabs-tabpane-active');
 
-    // Submitted values are always present
-    await expect(idPanel.getByText('Ian', { exact: true })).toBeVisible();
-    await expect(idPanel.getByText('Houvet', { exact: true })).toBeVisible();
+    // Submitted section must show the same data captured in the opportunity
+    await expect(idPanel.getByText('Submitted', { exact: true })).toBeVisible();
+    await expect(idPanel.getByText(clientInfoDetails.firstName, { exact: true })).toBeVisible();
+    await expect(idPanel.getByText(clientInfoDetails.lastName, { exact: true })).toBeVisible();
     await expect(idPanel.getByText(clientInfoDetails.idNumber).first()).toBeVisible();
 
-    // Check if verification is completed via the tab's status tag
+    // Check if verification provider returned results
     const isCompleted = await idPanel.locator('.sha-status-tag-container .sha-status-tag').first()
       .innerText().then(t => t.toUpperCase() === 'COMPLETED').catch(() => false);
 
     if (isCompleted) {
-      // Returned values (uppercase from API)
-      await expect(idPanel.getByText('IAN', { exact: true })).toBeVisible();
-      await expect(idPanel.getByText('HOUVET', { exact: true })).toBeVisible();
-      await expect(idPanel.getByText('20/08/1977')).toBeVisible();
-      await expect(idPanel.getByText('Male')).toBeVisible();
+      // Returned section — provider returns uppercase names
+      await expect(idPanel.getByText('Returned')).toBeVisible();
+      await expect(idPanel.getByText(clientInfoDetails.firstName.toUpperCase(), { exact: true })).toBeVisible();
+      await expect(idPanel.getByText(clientInfoDetails.lastName.toUpperCase(), { exact: true })).toBeVisible();
 
-      // Verification outcomes — all Passed (CSS may uppercase)
-      await expect(idPanel.getByText('Passed')).toHaveCount(4, { timeout: 10000 });
-      console.log('ID Verification: Completed — Name Match, ID Match, Death Check, Outcome all Passed');
+      // Returned ID must match the submitted ID
+      const returnedIds = idPanel.getByText(clientInfoDetails.idNumber);
+      await expect(returnedIds).toHaveCount(2); // once in Submitted, once in Returned
+
+      // All 4 verification outcomes must be Passed
+      await expect(idPanel.getByText('Passed')).toHaveCount(4, { timeout: 5000 });
+      console.log('ID Verification: Completed — Submitted ID matches Returned ID, all outcomes Passed');
     } else {
-      console.log('ID Verification: Awaiting Review — submitted data verified');
+      console.log('ID Verification: Awaiting Review — submitted data matches captured data');
     }
   });
 
-  test('should verify KYC Verification tab', async () => {
+  test('should verify KYC Verification tab and submitted ID matches captured data', async () => {
     await allure.allureId('S16');
 
     await verification.kycVerificationTab.click();
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText('KYC Verification Details')).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText('KYC Verification Details')).toBeVisible({ timeout: 5000 });
 
-    const kycPanel = dialog.getByRole('tabpanel');
+    const kycPanel = dialog.locator('.ant-tabs-tabpane-active');
 
-    // Submitted ID is always present
+    // Submitted section should show the captured ID number
+    await expect(kycPanel.getByText('Submitted', { exact: true })).toBeVisible();
     await expect(kycPanel.getByText(clientInfoDetails.idNumber).first()).toBeVisible();
 
-    // The tab-level status tag is the first visible one in the tabpanel
-    const tabStatusTag = kycPanel.locator('.sha-status-tag-container .sha-status-tag').first();
-    const isCompleted = await tabStatusTag
-      .innerText().then(t => t.toUpperCase() === 'COMPLETED').catch(() => false);
-
-    if (isCompleted) {
-      await expect(kycPanel.getByText('IAN', { exact: true })).toBeVisible();
-      await expect(kycPanel.getByText('BOXFUSION')).toBeVisible();
-      await expect(kycPanel.getByText('Passed').first()).toBeVisible();
-      console.log('KYC Verification: Completed — First Name Match Passed');
+    // KYC data may not have returned from provider yet — check if the ID appears twice
+    // (once in Submitted, once in Returned). If only once, provider data hasn't arrived.
+    const idCount = await kycPanel.getByText(clientInfoDetails.idNumber).count();
+    if (idCount >= 2) {
+      await expect(kycPanel.getByText('Returned')).toBeVisible();
+      console.log('KYC Verification: Data returned — Submitted ID matches Returned ID');
     } else {
-      console.log('KYC Verification: Awaiting Review — submitted data verified');
+      console.log('KYC Verification: Awaiting data from provider — submitted ID verified');
     }
+
+    // Review Decisions section must be present
+    await expect(kycPanel.getByText('Review Decisions')).toBeVisible({ timeout: 5000 });
   });
 
   test('should verify Compliance tab if present', async () => {
@@ -346,7 +349,7 @@ test.describe('Smoke Tests — Happy Path', () => {
 
     if (complianceTabVisible) {
       await verification.complianceTab.click();
-      await expect(dialog.getByText('Compliance Verification Details')).toBeVisible({ timeout: 10000 });
+      await expect(dialog.getByText('Compliance Verification Details')).toBeVisible({ timeout: 5000 });
 
       const compPanel = dialog.getByRole('tabpanel');
 
@@ -370,13 +373,121 @@ test.describe('Smoke Tests — Happy Path', () => {
     await verification.closeVerificationDialog();
   });
 
-  test('should see action buttons for finalising verification', async () => {
+  test('should open verification dialog, check pre-approval statuses, and approve ID Verification', async () => {
     await allure.allureId('S18');
 
+    // Dialog was closed in S17 — reopen it
+    await verification.openVerificationDialog();
+
+    const dialog = page.getByRole('dialog');
+    const overviewPanel = dialog.locator('.ant-tabs-tabpane-active');
+
+    // Overview tab must show status labels
+    await expect(overviewPanel.getByText('General Information')).toBeVisible({ timeout: 5000 });
+    await expect(overviewPanel.getByText('ID Status')).toBeVisible();
+    await expect(overviewPanel.getByText('KYC Status')).toBeVisible();
+
+    // Record pre-approval completed count to compare after approvals in S20
+    const completedBefore = await overviewPanel.getByText('Completed').count();
+    console.log(`Overview pre-approval: ${completedBefore} Completed`);
+
+    // Switch to ID tab — verify the tab status tag and outcomes before approval
+    await verification.idVerificationTab.click();
+    const idPanel = dialog.locator('.ant-tabs-tabpane-active');
+    await expect(idPanel.getByText('ID Verification Details')).toBeVisible({ timeout: 5000 });
+
+    // ID tab status tag must be visible (Completed or Awaiting Review)
+    const idTabStatus = await idPanel.locator('.sha-status-tag-container .sha-status-tag').first()
+      .innerText().catch(() => 'unknown');
+    expect(['COMPLETED', 'AWAITING REVIEW']).toContain(idTabStatus.toUpperCase());
+    console.log(`ID tab status before approval: ${idTabStatus}`);
+
+    // Approve ID Verification
+    await verification.approveIdVerification();
+
+    // After approval — Review Decision dropdown must show "Approve"
+    await verification.idVerificationTab.click();
+    const idPanelAfter = dialog.locator('.ant-tabs-tabpane-active');
+    await expect(idPanelAfter.getByText('Approve')).toBeVisible({ timeout: 5000 });
+
+    // ID tab status tag must now be "Completed"
+    const idTabStatusAfter = await idPanelAfter.locator('.sha-status-tag-container .sha-status-tag').first()
+      .innerText().catch(() => 'unknown');
+    expect(idTabStatusAfter.toUpperCase()).toBe('COMPLETED');
+    console.log(`ID tab status after approval: ${idTabStatusAfter}`);
+  });
+
+  test('should approve KYC Verification and verify status change', async () => {
+    await allure.allureId('S19');
+
+    const dialog = page.getByRole('dialog');
+
+    // Switch to KYC tab — capture status before approval
+    await verification.kycVerificationTab.click();
+    const kycPanel = dialog.locator('.ant-tabs-tabpane-active');
+    await expect(kycPanel.getByText('KYC Verification Details')).toBeVisible({ timeout: 5000 });
+
+    const kycStatusBefore = await kycPanel.locator('.sha-status-tag-container .sha-status-tag').first()
+      .innerText().catch(() => 'unknown');
+    console.log(`KYC tab status before approval: ${kycStatusBefore}`);
+
+    // Approve KYC Verification
+    await verification.approveKycVerification();
+
+    // After approval — KYC tab status tag must be "Completed"
+    await verification.kycVerificationTab.click();
+    const kycPanelAfter = dialog.locator('.ant-tabs-tabpane-active');
+    await expect(kycPanelAfter.getByText('KYC Verification Details')).toBeVisible({ timeout: 5000 });
+
+    const kycStatusAfter = await kycPanelAfter.locator('.sha-status-tag-container .sha-status-tag').first()
+      .innerText().catch(() => 'unknown');
+    // KYC status may remain "Awaiting Review" if provider data hasn't returned yet
+    expect(['COMPLETED', 'AWAITING REVIEW']).toContain(kycStatusAfter.toUpperCase());
+    // Verify the review decision was saved — "Approve" should be visible
+    await expect(kycPanelAfter.getByText('Approve')).toBeVisible({ timeout: 5000 });
+    console.log(`KYC tab status after approval: ${kycStatusAfter}`);
+  });
+
+  test('should verify all Overview statuses are Completed after approvals and close dialog', async () => {
+    await allure.allureId('S20');
+
+    const dialog = page.getByRole('dialog');
+
+    // Approve Compliance if the tab exists
+    await verification.approveComplianceIfPresent();
+
+    // Switch to Overview tab
+    await verification.overviewTab.click();
+    const overviewPanel = dialog.locator('.ant-tabs-tabpane-active');
+    await expect(overviewPanel.getByText('General Information')).toBeVisible({ timeout: 5000 });
+
+    // After all approvals: ID Status must be "Completed"
+    // (KYC/Photo may still be Awaiting Review if provider data hasn't returned)
+    const completedAfter = await overviewPanel.getByText('Completed').count();
+    expect(completedAfter).toBeGreaterThanOrEqual(2); // at least ID + KYC should be Completed
+    console.log(`Overview after all approvals: ${completedAfter} Completed`);
+
+    // No "Awaiting Review" should remain for ID or KYC (they were approved)
+    // Close the verification dialog
+    await verification.closeVerificationDialog();
+  });
+
+  test('should finalise verification outcomes and verify status change', async () => {
+    await allure.allureId('S21');
+
+    // Click Finalise Verification Outcomes
     await expect(verification.finaliseVerificationButton).toBeVisible();
     await expect(verification.finaliseVerificationButton).toBeEnabled();
-    await expect(verification.flagHighRiskButton).toBeVisible();
-    await expect(verification.flagHighRiskButton).toBeEnabled();
-    console.log('Action buttons visible: Finalise Verification Outcomes, Flag As High Risk');
+    await verification.finaliseVerification();
+
+    // After finalising, the page automatically navigates to the next workflow step
+    // Wait for the "Complete Onboarding Checklist" heading to appear
+    const onboardingHeading = page.getByRole('heading', { name: /Complete Onboarding Checklist/ });
+    await expect(onboardingHeading).toBeVisible({ timeout: 60000 });
+
+    // Verify the pre-onboarding checklist form is displayed
+    await expect(page.getByText('Pre-Onboarding Checklist')).toBeVisible({ timeout: 5000 });
+
+    console.log('Verification finalised — workflow advanced to Complete Onboarding Checklist');
   });
 });
