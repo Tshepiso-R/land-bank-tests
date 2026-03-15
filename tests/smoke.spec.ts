@@ -562,6 +562,7 @@ test.describe('Smoke Tests — Happy Path', () => {
 
     if (secondSubmitVisible) {
       await onboarding.submit();
+      await expect(page.getByText('successfully')).toBeVisible({ timeout: 10000 });
       await page.waitForLoadState('networkidle');
       console.log('Second onboarding checklist submitted');
     }
