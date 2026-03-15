@@ -543,40 +543,31 @@ test.describe('Smoke Tests — Happy Path', () => {
     console.log('Pre-onboarding checklist filled');
   });
 
-  test('should submit the onboarding checklist and verify workflow advances', async () => {
+  test('should submit the onboarding checklist and complete the workflow', async () => {
     await allure.allureId('S24');
 
     await expect(onboarding.submitButton).toBeVisible();
     await expect(onboarding.submitButton).toBeEnabled();
     await onboarding.submit();
 
-    // After submit, the workflow should advance to the next step
-    // Wait for either a success toast, status change, or navigation to a new page
+    // Success toast should appear
+    await expect(page.getByText('successfully')).toBeVisible({ timeout: 10000 });
+
+    // Wait for page to settle — may navigate to second assignment or My Items
     await page.waitForLoadState('networkidle');
 
-    // The onboarding heading should no longer show "In Progress" or a new page loads
-    // Check for common post-submit indicators
-    const postSubmitIndicators = [
-      page.getByText('successfully'),
-      page.getByText('Completed'),
-      page.getByRole('heading', { name: /Approve|Disburse|Assessment|Review/ }),
-    ];
+    // If a second checklist assignment appears, submit it directly (no need to re-fill)
+    const secondSubmitVisible = await onboarding.submitButton
+      .isVisible({ timeout: 10000 }).catch(() => false);
 
-    let advancedToNextStep = false;
-    for (const indicator of postSubmitIndicators) {
-      if (await indicator.isVisible({ timeout: 5000 }).catch(() => false)) {
-        advancedToNextStep = true;
-        console.log(`Onboarding submitted — indicator found: ${await indicator.textContent()}`);
-        break;
-      }
+    if (secondSubmitVisible) {
+      await onboarding.submit();
+      await page.waitForLoadState('networkidle');
+      console.log('Second onboarding checklist submitted');
     }
 
-    if (!advancedToNextStep) {
-      // At minimum, the submit should have triggered a page change or status update
-      const currentUrl = page.url();
-      console.log(`Onboarding submitted — current URL: ${currentUrl}`);
-      // The page should have changed or the status should no longer be "In Progress"
-      expect(currentUrl).toBeTruthy();
-    }
+    // Workflow should now be completed — visible on My Items or workflow page
+    await expect(page.getByText('Completed').first()).toBeVisible({ timeout: 30000 });
+    console.log('Workflow completed');
   });
 });
