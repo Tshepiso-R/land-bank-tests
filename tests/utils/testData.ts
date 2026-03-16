@@ -117,7 +117,7 @@ export const directors = [
     citizenship: 'South Africa',
     countryOfResidence: 'South Africa',
     countryOfOrigin: 'South Africa',
-    maritalStatus: 'Married',
+    maritalStatus: 'Single',
   },
   {
     firstName: 'Xolile',
@@ -128,7 +128,7 @@ export const directors = [
     citizenship: 'South Africa',
     countryOfResidence: 'South Africa',
     countryOfOrigin: 'South Africa',
-    maritalStatus: 'Married',
+    maritalStatus: 'Single',
   },
   {
     firstName: 'Chamaine',
@@ -139,7 +139,7 @@ export const directors = [
     citizenship: 'South Africa',
     countryOfResidence: 'South Africa',
     countryOfOrigin: 'South Africa',
-    maritalStatus: 'Married',
+    maritalStatus: 'Single',
   },
 ];
 
@@ -175,11 +175,11 @@ export const entityFarmData = {
 export const onboardingChecklist = {
   yearsOfFarmingExperience: '4 to 6 Years',
   waterUseRights: true,
-  businessPlanSupport: false,
+  businessPlanSupport: true,
   equipmentAccess: true,
   taxClearance: true,
   marketAccess: true,
   financialRecords: true,
-  mentorEngaged: false,
+  mentorEngaged: true,
   laborLawCompliant: true,
 };

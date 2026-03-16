@@ -23,11 +23,12 @@ End-to-end test automation for the LandBank CRM application built on the Shesha 
 
 | File | Tests | Type | Description |
 |------|-------|------|-------------|
-| `smoke.spec.ts` | 24 | Happy path (serial) | **Individual workflow** — Lead creation, pre-screening, conversion, opportunity details with married workflow (spouse info), loan initiation, verification approval (client + spouse), onboarding checklist completion. |
-| `entity-smoke.spec.ts` | 19 | Happy path (serial) | **Entity workflow** — Entity lead creation, pre-screening, conversion, entity info (directors, signatories), loan initiation, verification approval (directors + signatory + CIPC), onboarding checklist completion. |
+| `smoke.spec.ts` | 24 | Happy path (serial) | **Individual Loan Workflow — End to End** — Lead creation, pre-screening, conversion, opportunity details with married workflow (spouse info), loan initiation, verification approval (client + spouse), onboarding checklist completion. |
+| `entity-smoke.spec.ts` | 19 | Happy path (serial) | **Entity Loan Workflow — End to End** — Entity lead creation, pre-screening, conversion, entity info (directors, signatories), loan initiation, verification approval (directors + signatory + CIPC), onboarding checklist completion. |
 | `validation-and-edge-cases.spec.ts` | 38 | Negative & edge (parallel) | Married workflow regression, required field validation, email/mobile format validation, Entity lead validation, director/signatory edge cases, Entity information conditional logic. |
+| `ui-baseline-monitor.spec.ts` | 22 | UI regression (serial) | **UI Baseline Monitor** — Snapshots DOM structure across 22 pages/dialogs and detects unintended UI changes. Covers dashboard, leads, opportunities, entity flows, verification, and onboarding. |
 
-**Total: 81 tests**
+**Total: 103 tests** (81 functional + 22 baseline monitors)
 
 ### Validation & Edge Cases Breakdown
 
@@ -44,9 +45,10 @@ End-to-end test automation for the LandBank CRM application built on the Shesha 
 
 ```
 tests/
-  smoke.spec.ts                          # Individual happy path (24 serial tests)
-  entity-smoke.spec.ts                   # Entity happy path (19 serial tests)
+  smoke.spec.ts                          # Individual workflow (24 serial tests)
+  entity-smoke.spec.ts                   # Entity workflow (19 serial tests)
   validation-and-edge-cases.spec.ts      # Negative & edge cases (38 parallel tests)
+  ui-baseline-monitor.spec.ts            # UI baseline regression (22 serial tests)
   utils/
     login.ts                             # Shared login helper
     testData.ts                          # All test input values and constants
@@ -58,11 +60,20 @@ tests/
       verificationLocators.ts            # Verification inbox — locators and actions
       onboardingLocators.ts              # Onboarding checklist — locators and actions
       preScreeningLocators.ts            # Pre-screening questionnaire — locators
+    ui-baseline/
+      snapshotPage.ts                    # DOM snapshot extraction with dynamic content filters
+      compareSnapshots.ts                # Baseline diff comparison
+      baselineStore.ts                   # JSON baseline read/write
+baselines/                               # UI baseline JSON snapshots (auto-generated)
+scripts/
+  format-failures.js                     # Extract failures from Playwright JSON report
+  analyze-failures.js                    # AI-powered failure analysis via Claude API
 config/
   env.ts                                 # Environment URL configuration
 playwright.config.ts                     # Playwright configuration
 .github/workflows/
-  playwright-tests.yml                   # CI/CD pipeline
+  playwright-tests.yml                   # CI pipeline — regression tests + AI failure analysis
+  ui-baseline-monitor.yml                # CI pipeline — UI baseline monitor (daily + manual)
 ```
 
 ### Architecture
@@ -101,6 +112,12 @@ npx playwright test --project=chromium
 npx playwright test tests/smoke.spec.ts --project=chromium
 npx playwright test tests/entity-smoke.spec.ts --project=chromium
 npx playwright test tests/validation-and-edge-cases.spec.ts --project=chromium
+
+# Run UI baseline monitor
+npx playwright test tests/ui-baseline-monitor.spec.ts --project=chromium
+
+# Update UI baselines (after intentional UI changes)
+UPDATE_BASELINES=true npx playwright test tests/ui-baseline-monitor.spec.ts --project=chromium
 
 # Run across all browsers
 npx playwright test --project=chromium --project=firefox --project=webkit
@@ -149,7 +166,9 @@ export CRM_PASSWORD=your_password
 
 ## CI/CD
 
-Tests run automatically via GitHub Actions (`.github/workflows/playwright-tests.yml`):
+Two workflows run via GitHub Actions:
+
+### Regression Tests (`playwright-tests.yml`)
 
 | Trigger | Tests | Browsers |
 |---------|-------|----------|
@@ -158,10 +177,25 @@ Tests run automatically via GitHub Actions (`.github/workflows/playwright-tests.
 | Daily schedule (02:00 SAST) | All test files | Chromium, Firefox, WebKit |
 | Manual dispatch | All test files | Chromium, Firefox, WebKit |
 
+When tests fail after retries, an AI-powered analysis runs automatically — it extracts failure details, sends them to the Claude API for root cause analysis, and posts the results to the GitHub Actions step summary.
+
+**Required secret**: `ANTHROPIC_API_KEY` — needed for AI failure analysis.
+
+### UI Baseline Monitor (`ui-baseline-monitor.yml`)
+
+| Trigger | Behavior |
+|---------|----------|
+| Daily schedule (03:00 SAST) | Compare current UI against baselines, fail on unexpected changes |
+| Manual dispatch (`update_baselines=false`) | Same as daily — compare mode |
+| Manual dispatch (`update_baselines=true`) | Regenerate all baselines and commit to repo |
+
+Monitors 22 pages across the entire CRM workflow. Dynamic content (record data, status-dependent buttons, pagination) is filtered out to avoid false positives.
+
 ### Reports
 
 - **Allure report** — Published to GitHub Pages on `main` branch pushes. Historical trends preserved across runs via `actions/cache`.
 - **Playwright HTML report** — Uploaded as build artifact (30-day retention).
+- **AI failure analysis** — Posted to GitHub Actions step summary when tests fail. Also uploaded as artifact.
 
 ```bash
 # Open Playwright HTML report locally

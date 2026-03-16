@@ -40,6 +40,10 @@ export default defineConfig({
     headless: true,
     actionTimeout: 30000,
     navigationTimeout: 60000,
+    viewport: { width: 1920, height: 1080 },
+    launchOptions: {
+      args: ['--start-maximized'],
+    },
   },
   projects: [
     {

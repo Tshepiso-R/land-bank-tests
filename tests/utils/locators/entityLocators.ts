@@ -134,6 +134,11 @@ export class EntityLocators {
     countryOfResidence: string;
     countryOfOrigin: string;
     maritalStatus: string;
+    maritalRegime?: string;
+    spouseFirstName?: string;
+    spouseLastName?: string;
+    spouseIdNumber?: string;
+    spouseEmail?: string;
   }): Promise<void> {
     await this.addDirectorButton.click();
     await expect(this.directorDialog).toBeVisible({ timeout: 30000 });
@@ -164,6 +169,27 @@ export class EntityLocators {
     // Marital Information
     const maritalDropdown = dialog.locator('.ant-form-item').filter({ hasText: /^Marital Status/ }).locator('.ant-select').first();
     await this.selectDropdownByTitle(maritalDropdown, data.maritalStatus);
+
+    // Marital Regime (appears when Marital Status is Married)
+    if (data.maritalRegime) {
+      const regimeDropdown = dialog.locator('.ant-form-item').filter({ hasText: /^Marital Regime/ }).locator('.ant-select').first();
+      await expect(regimeDropdown).toBeVisible({ timeout: 5000 });
+      await this.selectDropdownByTitle(regimeDropdown, data.maritalRegime);
+    }
+
+    // Spouse Information (appears when Marital Regime is "Married in Community of Property")
+    if (data.spouseFirstName) {
+      await dialog.locator('.ant-form-item').filter({ hasText: /^Spouse First Name/ }).getByRole('textbox').fill(data.spouseFirstName);
+    }
+    if (data.spouseLastName) {
+      await dialog.locator('.ant-form-item').filter({ hasText: /^Spouse Last Name/ }).getByRole('textbox').fill(data.spouseLastName);
+    }
+    if (data.spouseIdNumber) {
+      await dialog.getByPlaceholder('13-digit SA ID number').nth(1).fill(data.spouseIdNumber);
+    }
+    if (data.spouseEmail) {
+      await dialog.locator('.ant-form-item').filter({ hasText: /^Spouse Email Address/ }).getByRole('textbox').fill(data.spouseEmail);
+    }
 
     // Save
     await dialog.getByRole('button', { name: 'check Save Director' }).click();

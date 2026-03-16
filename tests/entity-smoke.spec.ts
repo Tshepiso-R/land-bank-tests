@@ -23,7 +23,7 @@ import {
 
 test.use({ browserName: 'chromium' });
 
-test.describe('Entity Smoke Tests — Happy Path', () => {
+test.describe('Entity Loan Workflow — End to End', () => {
   // Serial mode: tests share browser state and must run in order
   test.describe.configure({ mode: 'serial' });
 
@@ -303,82 +303,80 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
   test('should approve director and signatory verifications', async () => {
     await allure.allureId('E15');
 
-    // Director dialogs have ID Verification tab; Signatory/CIPC dialogs may not
-    const awaitingButtons = page.getByRole('button', { name: 'Awaiting Review' });
-    const totalToApprove = await awaitingButtons.count();
-    console.log(`Found ${totalToApprove} Awaiting Review buttons`);
+    // Scroll to Entity Verifications and wait for status buttons to load
+    const entityVerifications = page.getByText('Entity Verifications').first();
+    await entityVerifications.scrollIntoViewIfNeeded();
+    await expect(entityVerifications).toBeVisible({ timeout: 30000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('button', { name: 'Awaiting Review' }).first()).toBeVisible({ timeout: 60000 });
 
-    for (let i = 0; i < totalToApprove; i++) {
-      const btn = awaitingButtons.first();
-      // Previous dialog close may briefly disable the button
-      await expect(btn).toBeEnabled({ timeout: 10000 });
-      await btn.click({ timeout: 30000 });
+    // Approve all "Awaiting Review" items — KYC first, then ID + Submit, then refresh
+    for (let pass = 1; pass <= 4; pass++) {
+      const awaitingButtons = page.getByRole('button', { name: 'Awaiting Review' });
+      const count = await awaitingButtons.count();
+      if (count === 0) break;
+      console.log(`Pass ${pass}: found ${count} Awaiting Review buttons`);
 
-      const dialog = page.getByRole('dialog');
-      await expect(dialog).toBeVisible({ timeout: 30000 });
-
-      // Director dialogs have Overview/ID Verification/KYC Verification tabs
-      // Signatory/Entity dialogs may have different tabs (e.g. CIPC Verification)
-      const idTab = dialog.getByRole('tab', { name: 'ID Verification' });
-      const hasIdTab = await idTab.isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (hasIdTab) {
-        // Director verification — approve via ID Verification tab
-        await idTab.click();
-        const reviewDecisionDropdown = dialog.locator('.ant-form-item').filter({ hasText: /Review Decision/ }).locator('.ant-select').first();
-        await expect(reviewDecisionDropdown).toBeVisible({ timeout: 10000 });
-        const alreadyApproved = await reviewDecisionDropdown.locator('.ant-select-selection-item').filter({ hasText: 'Approve' }).isVisible().catch(() => false);
-        if (!alreadyApproved) {
-          await reviewDecisionDropdown.click();
-          const approveOption = page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option').filter({ hasText: 'Approve' });
-          await approveOption.first().click();
-        }
-        await dialog.getByRole('button', { name: 'Submit' }).click();
-        await expect(page.getByText('Changes saved successfully').first()).toBeVisible({ timeout: 10000 });
-        await dialog.getByRole('button', { name: 'Close' }).last().click();
-      } else {
-        // Signatory/CIPC dialog — look for any Review Decision dropdown
-        const reviewDropdown = dialog.locator('.ant-select').first();
-        const hasDropdown = await reviewDropdown.isVisible({ timeout: 3000 }).catch(() => false);
-        if (hasDropdown) {
-          const alreadySet = await reviewDropdown.locator('.ant-select-selection-item').filter({ hasText: 'Approve' }).isVisible().catch(() => false);
-          if (!alreadySet) {
-            await reviewDropdown.click();
-            const approveOption = page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option').filter({ hasText: 'Approve' });
-            const hasApprove = await approveOption.first().isVisible({ timeout: 3000 }).catch(() => false);
-            if (hasApprove) {
-              await approveOption.first().click();
-            } else {
-              await page.keyboard.press('Escape');
-            }
-          }
-          const submitBtn = dialog.getByRole('button', { name: 'Submit' });
-          const hasSubmit = await submitBtn.isVisible({ timeout: 3000 }).catch(() => false);
-          if (hasSubmit) {
-            await submitBtn.click();
-            await expect(page.getByText('Changes saved successfully').first()).toBeVisible({ timeout: 10000 });
+      for (let i = 0; i < count; i++) {
+        // Always click the first enabled "Awaiting Review" button
+        const btns = page.getByRole('button', { name: 'Awaiting Review' });
+        const total = await btns.count();
+        let clicked = false;
+        for (let j = 0; j < total; j++) {
+          const candidate = btns.nth(j);
+          if (await candidate.isEnabled().catch(() => false)) {
+            await candidate.click({ timeout: 30000 });
+            clicked = true;
+            break;
           }
         }
-        // Close the dialog — use aria-label Close (X button) with force since spinner may block
-        await dialog.locator('button[aria-label="Close"]').click({ force: true });
+        if (!clicked) break;
+
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible({ timeout: 30000 });
+
+        // Wait for tabs to render
+        const idTab = dialog.getByRole('tab', { name: 'ID Verification' });
+        const cipcTab = dialog.getByRole('tab', { name: 'CIPC Verification' });
+        await expect(idTab.or(cipcTab)).toBeVisible({ timeout: 10000 });
+
+        const hasIdTab = await idTab.isVisible().catch(() => false);
+
+        if (hasIdTab) {
+          // Person dialog — KYC first, then ID + Submit
+          await verification.approveKycVerification();
+          console.log(`  KYC approved`);
+
+          await verification.approveIdVerification();
+          console.log(`  ID approved + submitted`);
+        } else {
+          // CIPC dialog
+          await verification.approveCipcVerification();
+          console.log(`  CIPC approved`);
+        }
+
+        // Refresh to close dialog and update statuses
+        await page.reload({ waitUntil: 'networkidle' });
+        await expect(page.getByText('Entity Verifications').first()).toBeVisible({ timeout: 30000 });
+        console.log(`  Refreshed`);
       }
-
-      // Fallback: if Close button was blocked by a spinner overlay, press Escape
-      await expect(dialog).toBeHidden({ timeout: 10000 }).catch(async () => {
-        await page.keyboard.press('Escape');
-        await expect(dialog).toBeHidden({ timeout: 5000 });
-      });
-      console.log(`Approved ${i + 1}/${totalToApprove}`);
     }
 
-    // Reload page to refresh button states after approvals
-    await page.reload({ waitUntil: 'networkidle' });
-    await expect(page.getByText('Entity Verifications')).toBeVisible({ timeout: 30000 });
+    // Assert no enabled "Awaiting Review" buttons remain
+    const allRemaining = page.getByRole('button', { name: 'Awaiting Review' });
+    const remainingCount = await allRemaining.count();
+    let enabledRemaining = 0;
+    for (let j = 0; j < remainingCount; j++) {
+      if (await allRemaining.nth(j).isEnabled().catch(() => false)) enabledRemaining++;
+    }
+    console.log(`After approvals: ${enabledRemaining} enabled / ${remainingCount} total Awaiting Review remaining`);
+    expect(enabledRemaining, 'All approvable verifications should be completed').toBe(0);
 
-    // Verify all buttons changed to Completed (no more "Awaiting Review")
-    const remainingButtons = await page.getByRole('button', { name: 'Awaiting Review' }).count();
-    console.log(`After reload: ${remainingButtons} Awaiting Review buttons remaining`);
-    console.log('All director and signatory verifications approved');
+    // Assert "Completed" statuses on the Entity Verifications landing
+    const completedButtons = page.getByRole('button', { name: 'Completed' });
+    const completedCount = await completedButtons.count();
+    console.log(`Completed buttons: ${completedCount}`);
+    expect(completedCount, 'At least one verification should show Completed').toBeGreaterThan(0);
   });
 
   test('should finalise verification outcomes and advance to onboarding', async () => {
@@ -424,8 +422,8 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
     await expect(onboarding.marketAccessCheckbox).toBeChecked();
     await expect(onboarding.financialRecordsCheckbox).toBeChecked();
     await expect(onboarding.laborLawCompliantCheckbox).toBeChecked();
-    await expect(onboarding.businessPlanSupportCheckbox).not.toBeChecked();
-    await expect(onboarding.mentorEngagedCheckbox).not.toBeChecked();
+    await expect(onboarding.businessPlanSupportCheckbox).toBeChecked();
+    await expect(onboarding.mentorEngagedCheckbox).toBeChecked();
 
     console.log('Entity pre-onboarding checklist filled');
   });

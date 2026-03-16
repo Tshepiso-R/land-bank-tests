@@ -12,7 +12,7 @@ import { validLead, uniqueFirstName, clientInfoDetails, spouseInfo, loanInfo, fa
 
 test.use({ browserName: 'chromium' });
 
-test.describe('Smoke Tests — Happy Path', () => {
+test.describe('Individual Loan Workflow — End to End', () => {
   // Serial mode: tests share browser state and must run in order
   test.describe.configure({ mode: 'serial' });
 

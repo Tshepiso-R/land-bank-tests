@@ -86,8 +86,9 @@ export class VerificationLocators {
     const modalBody = dialog.locator('.ant-modal-body');
     await modalBody.evaluate(el => el.scrollTo(0, el.scrollHeight));
 
-    // Select "Approve" from Review Decision dropdown — scope to ID Verification label
-    const reviewDecisionDropdown = dialog.locator('.ant-form-item').filter({ hasText: /Id Verification Review Decision|Review Decision/ }).locator('.ant-select').first();
+    // Select "Approve" from Review Decision dropdown — use the active tab pane's select
+    const activePane = dialog.locator('.ant-tabs-tabpane-active');
+    const reviewDecisionDropdown = activePane.locator('.ant-select').first();
     await reviewDecisionDropdown.scrollIntoViewIfNeeded();
     // Check if "Approve" is already selected
     const alreadyApproved = await reviewDecisionDropdown.getByTitle('Approve').isVisible().catch(() => false);
@@ -104,34 +105,22 @@ export class VerificationLocators {
     await submitButton.scrollIntoViewIfNeeded();
     await submitButton.click();
 
-    // Wait for success indication (toast or status change)
+    // Assert success toast "Changes saved successfully"
+    await expect(this.page.getByText('Changes saved successfully').first()).toBeVisible({ timeout: 10000 });
+
     await this.page.waitForLoadState('networkidle');
   }
 
-  /** Approve KYC Verification: select "Approve" from First Name Review Decision dropdown */
+  /** Approve KYC Verification: select "Approve" from the KYC Review Decision dropdown (auto-saves) */
   async approveKycVerification(): Promise<void> {
     const dialog = this.page.getByRole('dialog');
     await this.kycVerificationTab.click();
     await expect(dialog.getByText('KYC Verification Details')).toBeVisible({ timeout: 5000 });
 
-    // Scroll all scrollable ancestors of the Review Decision section to reveal the dropdown
-    await dialog.evaluate((dlg) => {
-      const el = Array.from(dlg.querySelectorAll('*')).find(e => e.textContent?.includes('Review Decision') && e.querySelector('.ant-select'));
-      if (el) {
-        let parent = el.parentElement;
-        while (parent && parent !== dlg) {
-          if (parent.scrollHeight > parent.clientHeight) {
-            parent.scrollTop = parent.scrollHeight;
-          }
-          parent = parent.parentElement;
-        }
-        el.scrollIntoView({ block: 'center' });
-      }
-    });
-
-    // Click the KYC Review Decision dropdown — scope to the specific KYC label to avoid matching hidden ID tab's dropdown
-    const reviewDecisionDropdown = dialog.locator('.ant-form-item').filter({ hasText: /Kyc Verification First Name/ }).locator('.ant-select').first();
-    await expect(reviewDecisionDropdown).toBeVisible({ timeout: 5000 });
+    // Use active tab pane's select to avoid matching hidden ID tab's dropdown
+    const activePane = dialog.locator('.ant-tabs-tabpane-active');
+    const reviewDecisionDropdown = activePane.locator('.ant-select').first();
+    await reviewDecisionDropdown.scrollIntoViewIfNeeded();
 
     // Check if "Approve" is already selected
     const alreadyApproved = await reviewDecisionDropdown.getByTitle('Approve').isVisible().catch(() => false);
@@ -181,6 +170,67 @@ export class VerificationLocators {
     }
 
     await this.page.waitForLoadState('networkidle');
+  }
+
+  /** Approve CIPC Company Name Review Decision */
+  async approveCipcVerification(): Promise<void> {
+    const dialog = this.page.getByRole('dialog');
+    const cipcTab = dialog.getByRole('tab', { name: 'CIPC Verification' });
+    await expect(cipcTab).toBeVisible({ timeout: 10000 });
+    await cipcTab.click();
+
+    // Use active tab pane's select for the Company Name Review Decision
+    const activePane = dialog.locator('.ant-tabs-tabpane-active');
+    const reviewDecisionDropdown = activePane.locator('.ant-select').first();
+    await reviewDecisionDropdown.scrollIntoViewIfNeeded();
+
+    // Check if already approved
+    const alreadyApproved = await reviewDecisionDropdown.getByTitle('Approve').isVisible().catch(() => false);
+    if (!alreadyApproved) {
+      await reviewDecisionDropdown.click();
+      const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
+      const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
+      await expect(approveOption).toBeVisible({ timeout: 5000 });
+      await approveOption.click();
+    }
+
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /** Close verification dialog — bottom Close button is primary (works reliably from KYC tab) */
+  async closeDialog(): Promise<void> {
+    const dialog = this.page.getByRole('dialog');
+
+    // Strategy 1: Bottom Close button — most reliable when on KYC tab (avoids spinner overlay)
+    const closeBtn = dialog.locator('button').filter({ hasText: /^Close$/ }).last();
+    if (await closeBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await closeBtn.scrollIntoViewIfNeeded();
+      await closeBtn.click({ timeout: 5000 });
+      await expect(dialog).toBeHidden({ timeout: 10000 }).catch(() => {});
+    }
+
+    // Strategy 2: Escape key
+    if (await dialog.isVisible().catch(() => false)) {
+      await this.page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden({ timeout: 5000 }).catch(() => {});
+    }
+
+    // Strategy 3: Click the X close icon
+    if (await dialog.isVisible().catch(() => false)) {
+      const xButton = dialog.locator('button.ant-modal-close').first();
+      if (await xButton.isVisible().catch(() => false)) {
+        await xButton.click({ timeout: 5000 }).catch(() => {});
+        await expect(dialog).toBeHidden({ timeout: 5000 }).catch(() => {});
+      }
+    }
+
+    // Strategy 4: Click the modal backdrop/mask
+    if (await dialog.isVisible().catch(() => false)) {
+      const mask = this.page.locator('.ant-modal-wrap').first();
+      await mask.click({ position: { x: 10, y: 10 }, timeout: 5000 }).catch(() => {});
+    }
+
+    await expect(dialog).toBeHidden({ timeout: 10000 });
   }
 
   /** Finalise verification outcomes — clicks the button and waits for status change */
