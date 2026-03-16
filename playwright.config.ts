@@ -9,6 +9,7 @@ export default defineConfig({
     'smoke.spec.ts',
     'entity-smoke.spec.ts',
     'validation-and-edge-cases.spec.ts',
+    'ui-baseline-monitor.spec.ts',
   ],
   timeout: 120000,
   expect: {

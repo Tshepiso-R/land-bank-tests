@@ -47,6 +47,7 @@ jobs:
           fi
 
       - name: Run Playwright tests
+        id: test-run
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             npx playwright test --project=chromium --project=firefox --project=webkit
@@ -56,6 +57,52 @@ jobs:
         continue-on-error: true
         env:
           TEST_ENV: qa
+
+      # --- AI Failure Analysis: runs only when tests fail after retries ---
+
+      - name: Check for test failures
+        id: check-failures
+        if: always()
+        run: |
+          if [ -f "playwright-report/results.json" ]; then
+            node scripts/format-failures.js > failure-report.json
+            FAIL_COUNT=$(node -e "try{const r=require('./failure-report.json');console.log(r.summary.failed||0)}catch(e){console.log(0)}")
+            echo "fail_count=$FAIL_COUNT" >> $GITHUB_OUTPUT
+            echo "Test failures: $FAIL_COUNT"
+          else
+            echo "fail_count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Analyze failures with AI
+        if: always() && steps.check-failures.outputs.fail_count != '0'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node scripts/analyze-failures.js > analysis-report.md
+          echo "## AI Failure Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat analysis-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload failure analysis
+        if: always() && steps.check-failures.outputs.fail_count != '0'
+        uses: actions/upload-artifact@v5
+        with:
+          name: failure-analysis
+          path: |
+            failure-report.json
+            analysis-report.md
+          retention-days: 30
+
+      # --- UI Baseline Monitor: schedule and manual dispatch only ---
+
+      - name: Run UI Baseline Monitor
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: npx playwright test tests/ui-baseline-monitor.spec.ts --project=chromium
+        continue-on-error: true
+        env:
+          TEST_ENV: qa
+
+      # --- Reports ---
 
       - name: Download previous Allure history
         uses: actions/cache@v5

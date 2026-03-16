@@ -1,0 +1,62 @@
+{
+  "url": "/dynamic/LandBank.Crm/LBLead-table",
+  "elements": [
+    {
+      "tag": "button",
+      "role": "button",
+      "name": "Close"
+    },
+    {
+      "tag": "button",
+      "role": "button"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Cancel"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "OK"
+    },
+    {
+      "tag": "input",
+      "type": "search"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Owner*"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Title*"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Client Type*"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Province*"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Preferred Communication*"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Lead Channel*"
+    }
+  ]
+}

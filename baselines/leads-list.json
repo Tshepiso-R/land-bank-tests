@@ -1,0 +1,26 @@
+{
+  "url": "/dynamic/LandBank.Crm/LBLead-table",
+  "elements": [
+    {
+      "tag": "h4",
+      "role": "heading",
+      "text": "All Leads"
+    },
+    {
+      "tag": "button",
+      "role": "button"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "New Lead"
+    },
+    {
+      "tag": "a"
+    },
+    {
+      "tag": "input",
+      "type": "text"
+    }
+  ]
+}

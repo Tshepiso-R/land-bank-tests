@@ -1,0 +1,20 @@
+{
+  "url": "/dynamic/user-dashboard",
+  "elements": [
+    {
+      "tag": "h2",
+      "role": "heading",
+      "text": "My Dashboard"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "placeholder": "Start date"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "placeholder": "End date"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "url": "/dynamic/Shesha.Workflow/workflows-inbox",
+  "elements": [
+    {
+      "tag": "h4",
+      "role": "heading",
+      "text": "Incoming Items"
+    },
+    {
+      "tag": "button",
+      "role": "button"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Export"
+    },
+    {
+      "tag": "a"
+    },
+    {
+      "tag": "input",
+      "type": "text"
+    }
+  ]
+}
