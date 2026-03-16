@@ -98,7 +98,7 @@ export class VerificationLocators {
   // --- Verification dialog helpers ---
 
   async openVerificationDialog(): Promise<void> {
-    await this.awaitingReviewButton.click();
+    await this.awaitingReviewButton.first().click();
     await expect(this.overviewTab).toBeVisible({ timeout: 30000 });
   }
 
@@ -123,11 +123,17 @@ export class VerificationLocators {
     // Select "Approve" from Review Decision dropdown — scope to ID Verification label
     const reviewDecisionDropdown = dialog.locator('.ant-form-item').filter({ hasText: /Id Verification Review Decision|Review Decision/ }).locator('.ant-select').first();
     await reviewDecisionDropdown.scrollIntoViewIfNeeded();
-    await reviewDecisionDropdown.click();
-    const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
-    const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
-    await expect(approveOption).toBeVisible({ timeout: 5000 });
-    await approveOption.click();
+    // Check if "Approve" is already selected
+    const alreadyApproved = await reviewDecisionDropdown.getByTitle('Approve').isVisible().catch(() => false);
+    if (!alreadyApproved) {
+      await reviewDecisionDropdown.click();
+      const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
+      const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
+      await expect(approveOption).toBeVisible({ timeout: 5000 });
+      await approveOption.click();
+    } else {
+      console.log('ID Verification: Already approved — skipping dropdown selection');
+    }
 
     // Click Submit
     const submitButton = dialog.getByRole('button', { name: 'Submit' });
@@ -163,11 +169,18 @@ export class VerificationLocators {
     // Click the KYC Review Decision dropdown — scope to the specific KYC label to avoid matching hidden ID tab's dropdown
     const reviewDecisionDropdown = dialog.locator('.ant-form-item').filter({ hasText: /Kyc Verification First Name/ }).locator('.ant-select').first();
     await expect(reviewDecisionDropdown).toBeVisible({ timeout: 5000 });
-    await reviewDecisionDropdown.click();
-    const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
-    const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
-    await expect(approveOption).toBeVisible({ timeout: 5000 });
-    await approveOption.click();
+
+    // Check if "Approve" is already selected
+    const alreadyApproved = await reviewDecisionDropdown.getByTitle('Approve').isVisible().catch(() => false);
+    if (!alreadyApproved) {
+      await reviewDecisionDropdown.click();
+      const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
+      const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
+      await expect(approveOption).toBeVisible({ timeout: 5000 });
+      await approveOption.click();
+    } else {
+      console.log('KYC Verification: Already approved — skipping dropdown selection');
+    }
 
     await this.page.waitForLoadState('networkidle');
     console.log('KYC Verification: Approved');
@@ -195,8 +208,12 @@ export class VerificationLocators {
     const reviewDropdowns = activePane.locator('.ant-form-item').filter({ hasText: /Review Decision/ }).locator('.ant-select');
     const count = await reviewDropdowns.count();
     for (let i = 0; i < count; i++) {
-      await reviewDropdowns.nth(i).scrollIntoViewIfNeeded();
-      await reviewDropdowns.nth(i).click();
+      const dropdown = reviewDropdowns.nth(i);
+      await dropdown.scrollIntoViewIfNeeded();
+      // Skip if already approved
+      const alreadyApproved = await dropdown.getByTitle('Approve').isVisible().catch(() => false);
+      if (alreadyApproved) continue;
+      await dropdown.click();
       const dropdownPopup = this.page.locator('.ant-select-dropdown:visible');
       const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
       if (await approveOption.isVisible().catch(() => false)) {

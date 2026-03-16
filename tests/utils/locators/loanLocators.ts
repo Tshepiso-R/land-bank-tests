@@ -250,6 +250,27 @@ export class LoanLocators {
     return this.formItemSelect(/^Preferred Communication/);
   }
 
+  // Married-specific fields
+  get maritalRegimeDropdown(): Locator {
+    return this.formItemSelect(/^Marital Regime/);
+  }
+
+  get spouseFirstNameInput(): Locator {
+    return this.formItem(/^Spouse First Name/).getByRole('textbox');
+  }
+
+  get spouseLastNameInput(): Locator {
+    return this.formItem(/^Spouse Last Name/).getByRole('textbox');
+  }
+
+  get spouseEmailInput(): Locator {
+    return this.formItem(/^Spouse Email Address/).getByRole('textbox');
+  }
+
+  get spouseIdNumberInput(): Locator {
+    return this.formItem(/^Spouse ID Number/).getByRole('textbox');
+  }
+
   // --- Dropdown helpers (reusable for all Ant selects) ---
 
   async selectDropdownOption(dropdown: Locator, searchText: string, optionText: string): Promise<void> {
@@ -306,6 +327,7 @@ export class LoanLocators {
     region?: string;
     provincialOffice?: string;
     maritalStatus?: string;
+    maritalRegime?: string;
   }): Promise<void> {
     // Check Auto Verify so verifications complete automatically
     if (!(await this.autoVerifyCheckbox.isChecked())) {
@@ -339,6 +361,22 @@ export class LoanLocators {
     if (data.maritalStatus) {
       await this.selectDropdownByTitle(this.maritalStatusDropdown, data.maritalStatus);
     }
+    if (data.maritalRegime) {
+      await this.selectDropdownByTitle(this.maritalRegimeDropdown, data.maritalRegime);
+    }
+  }
+
+  async fillSpouseInfo(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    idNumber: string;
+  }): Promise<void> {
+    await expect(this.spouseFirstNameInput).toBeVisible({ timeout: 10000 });
+    await this.spouseFirstNameInput.fill(data.firstName);
+    await this.spouseLastNameInput.fill(data.lastName);
+    await this.spouseEmailInput.fill(data.email);
+    await this.spouseIdNumberInput.fill(data.idNumber);
   }
 
   // --- Loan Info sub-tab helpers ---

@@ -5,7 +5,7 @@ import { LeadLocators } from './utils/locators/leadLocators';
 import { LoanLocators } from './utils/locators/loanLocators';
 import { VerificationLocators } from './utils/locators/verificationLocators';
 import { OnboardingLocators } from './utils/locators/onboardingLocators';
-import { validLead, uniqueFirstName, clientInfoDetails, loanInfo, farmData, opportunityOwner, onboardingChecklist } from './utils/testData';
+import { validLead, uniqueFirstName, clientInfoDetails, spouseInfo, loanInfo, farmData, opportunityOwner, onboardingChecklist } from './utils/testData';
 
 test.use({ browserName: 'chromium' });
 
@@ -135,6 +135,9 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 5000 });
     await loan.fillClientInfo(clientInfoDetails);
 
+    // Fill Spouse Information (appears because maritalStatus is Married)
+    await loan.fillSpouseInfo(spouseInfo);
+
     // Loan Info tab
     await loan.loanInfoTab.click();
     await expect(loan.loanInfoPanel).toBeVisible();
@@ -215,7 +218,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     const clientPanel = page.getByRole('tabpanel', { name: 'Client Info' });
     await expect(clientPanel.getByText(clientInfoDetails.idNumber)).toBeVisible();
     await expect(clientPanel.getByText('Ian')).toBeVisible();
-    await expect(clientPanel.getByText('Houvet')).toBeVisible();
+    await expect(clientPanel.getByText('Houvet').first()).toBeVisible();
     await expect(clientPanel.getByText(clientInfoDetails.email)).toBeVisible();
     await expect(clientPanel.getByText('0821234567')).toBeVisible();
     await expect(clientPanel.getByText('Email', { exact: true })).toBeVisible();
@@ -223,7 +226,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(clientPanel.getByText('Development')).toBeVisible();
     await expect(clientPanel.getByText('Gauteng')).toBeVisible();
     await expect(clientPanel.getByText('Central Region')).toBeVisible();
-    await expect(clientPanel.getByText('Single')).toBeVisible();
+    await expect(clientPanel.getByText('Married').first()).toBeVisible();
     console.log('Client Info verified');
   });
 
@@ -464,14 +467,30 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(overviewPanel.getByText('General Information')).toBeVisible({ timeout: 5000 });
 
     // After all approvals: ID Status must be "Completed"
-    // (KYC/Photo may still be Awaiting Review if provider data hasn't returned)
     const completedAfter = await overviewPanel.getByText('Completed').count();
-    expect(completedAfter).toBeGreaterThanOrEqual(1); // at least one status should be Completed
-    console.log(`Overview after all approvals: ${completedAfter} Completed`);
+    expect(completedAfter).toBeGreaterThanOrEqual(1);
+    console.log(`Overview after client approvals: ${completedAfter} Completed`);
 
-    // No "Awaiting Review" should remain for ID or KYC (they were approved)
-    // Close the verification dialog
+    // Close the client verification dialog
     await verification.closeVerificationDialog();
+
+    // Handle spouse verification if present (married workflow creates a second "Awaiting Review" button)
+    const remainingCount = await verification.awaitingReviewButton.count();
+    if (remainingCount > 0) {
+      console.log(`Spouse verification found — approving ${remainingCount} remaining`);
+      for (let i = 0; i < remainingCount; i++) {
+        await verification.awaitingReviewButton.first().click();
+        await expect(verification.overviewTab).toBeVisible({ timeout: 30000 });
+
+        // Approve ID, KYC, and Compliance for spouse
+        await verification.approveIdVerification();
+        await verification.approveKycVerification();
+        await verification.approveComplianceIfPresent();
+
+        await verification.closeVerificationDialog();
+        console.log(`Spouse verification ${i + 1} approved`);
+      }
+    }
   });
 
   test('should finalise verification outcomes and verify status change', async () => {
@@ -514,7 +533,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Verify client data carried over
     await expect(page.getByText(clientInfoDetails.idNumber)).toBeVisible();
     await expect(page.getByText('Ian', { exact: true })).toBeVisible();
-    await expect(page.getByText('Houvet', { exact: true })).toBeVisible();
+    await expect(page.getByText('Houvet', { exact: true }).first()).toBeVisible();
 
     console.log('Onboarding checklist page verified');
   });

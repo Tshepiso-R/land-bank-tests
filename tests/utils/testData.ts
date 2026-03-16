@@ -80,7 +80,15 @@ export const clientInfoDetails = {
   citizenship: 'South Africa',
   countryOfOrigin: 'South Africa',
   clientClassification: 'Development',
-  maritalStatus: 'Single',
+  maritalStatus: 'Married',
+  maritalRegime: 'Married in Community of Property',
+};
+
+export const spouseInfo = {
+  firstName: 'Chamaine',
+  lastName: 'Houvet',
+  email: 'tinaye.mushore@gmail.com',
+  idNumber: '7304190225085',
 };
 
 export const loanInfo = {
