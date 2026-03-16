@@ -1,0 +1,20 @@
+{
+  "url": "/dynamic/LandBank.Crm/LBOpportunity-details",
+  "elements": [
+    {
+      "tag": "button",
+      "role": "button",
+      "name": "Close"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Cancel"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "OK"
+    }
+  ]
+}

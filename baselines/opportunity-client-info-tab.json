@@ -1,0 +1,52 @@
+{
+  "url": "/dynamic/LandBank.Crm/LBOpportunity-details",
+  "elements": [
+    {
+      "tag": "button",
+      "role": "button"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Audit Log"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Loan Application Details"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Tasks"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Notes"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Client Info"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Loan Info"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Farms"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Compliance"
+    },
+    {
+      "tag": "a"
+    }
+  ]
+}

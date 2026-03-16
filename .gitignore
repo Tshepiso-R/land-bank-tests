@@ -7,3 +7,4 @@ shared-report/
 test-results/
 .playwright-mcp/
 *.png
+baselines/*.current.json

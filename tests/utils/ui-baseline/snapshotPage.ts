@@ -33,25 +33,48 @@ export async function snapshotPage(page: Page, scope?: string): Promise<PageSnap
       return rect.width > 0 && rect.height > 0;
     }
 
-    // Skip elements that render inconsistently between page loads
+    // Skip elements that render inconsistently between page loads:
+    // sidebar nav, pagination, table body rows (data changes), filter dropdowns, map widgets
     function isDynamic(el: Element): boolean {
-      return !!el.closest('.ant-pagination, .ant-table-pagination, .ant-table-filter-dropdown, .ant-layout-sider, .ant-menu');
+      if (el.closest('.ant-pagination, .ant-table-pagination, .ant-table-filter-dropdown, .ant-layout-sider, .ant-menu, .ant-table-tbody, .ant-table-body')) return true;
+      // Google Maps search input loads asynchronously and may not always render
+      const placeholder = el.getAttribute('placeholder') || '';
+      if (placeholder === 'Search places') return true;
+      return false;
+    }
+
+    // Strip dynamic/data-specific content (names, IDs, dates, loading states)
+    function normalizeText(text: string | undefined): string | undefined {
+      if (!text) return undefined;
+      const trimmed = text.trim();
+      // Skip Loading states, timestamps, record-specific names (Auto*, dates)
+      if (/^(Loading|Saving|Please wait)/i.test(trimmed)) return undefined;
+      if (/^Auto[a-z0-9]+/i.test(trimmed)) return undefined;
+      if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(trimmed)) return undefined;
+      // Skip record reference numbers (e.g. LD-2026-000641, OPP-2026-001)
+      if (/^[A-Z]{2,5}-\d{4}-\d+/.test(trimmed)) return undefined;
+      // Skip status-dependent CRM action buttons (vary by record workflow state)
+      const actionButtons = ['Edit', 'Disqualify', 'Initiate Pre-Screening', 'Convert to Opportunity', 'Qualify', 'Re-open', 'Submit', 'Approve', 'Reject', 'Recall'];
+      if (actionButtons.includes(trimmed)) return undefined;
+      return trimmed.substring(0, 100);
     }
 
     function addElement(el: Element, tag: string, info: Record<string, string | undefined>) {
-      const text = info.text?.trim().substring(0, 100);
+      const text = normalizeText(info.text);
       const key = `${tag}|${info.role || ''}|${text || ''}|${info.name || ''}|${info.placeholder || ''}`;
       if (seen.has(key)) return;
       seen.add(key);
       results.push({ tag, ...info, text });
     }
 
-    // Headings
+    // Headings (skip empty headings — dynamic content may not always populate them)
     root.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"]').forEach(el => {
       if (!isVisible(el) || isDynamic(el)) return;
+      const text = el.textContent?.trim();
+      if (!text) return;
       addElement(el, el.tagName.toLowerCase(), {
         role: 'heading',
-        text: el.textContent || undefined,
+        text: text || undefined,
       });
     });
 

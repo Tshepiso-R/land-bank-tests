@@ -8,17 +8,12 @@
     {
       "tag": "button",
       "role": "button",
-      "text": "Autommsycj61 LeadCreate"
-    },
-    {
-      "tag": "button",
-      "role": "button",
-      "text": "Edit"
-    },
-    {
-      "tag": "button",
-      "role": "button",
       "text": "Audit Log"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Save"
     },
     {
       "tag": "tab",
@@ -36,31 +31,11 @@
       "text": "Notes"
     },
     {
-      "tag": "tab",
-      "role": "tab",
-      "text": "Client Info"
-    },
-    {
-      "tag": "tab",
-      "role": "tab",
-      "text": "Loan Info"
-    },
-    {
-      "tag": "tab",
-      "role": "tab",
-      "text": "Farms"
-    },
-    {
-      "tag": "tab",
-      "role": "tab",
-      "text": "Compliance"
-    },
-    {
       "tag": "a"
     },
     {
-      "tag": "a",
-      "text": "Autommsycj61 LeadCreate"
+      "tag": "textarea",
+      "type": "textarea"
     }
   ]
 }

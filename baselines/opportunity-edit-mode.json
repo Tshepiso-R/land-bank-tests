@@ -1,0 +1,125 @@
+{
+  "url": "/dynamic/LandBank.Crm/LBOpportunity-details",
+  "elements": [
+    {
+      "tag": "button",
+      "role": "button"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Cancel"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Save"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Audit Log"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Loan Application Details"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Tasks"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Notes"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Client Info"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Loan Info"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Farms"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Compliance"
+    },
+    {
+      "tag": "a"
+    },
+    {
+      "tag": "input",
+      "type": "search"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Client Title"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Preferred Communication*"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Country Of Residence"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Citizenship"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Country Of Origin"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Client Classification*"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Province"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Region"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Provincial Office"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Marital Status"
+    },
+    {
+      "tag": "ant-select",
+      "role": "combobox",
+      "text": "Marital Regime*"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+name: UI Baseline Monitor
+
+on:
+  schedule:
+    # Run daily at 03:00 AM SAST (01:00 UTC), after regression tests
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      update_baselines:
+        description: 'Update baselines instead of comparing (use after intentional UI changes)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run UI Baseline Monitor
+        run: npx playwright test tests/ui-baseline-monitor.spec.ts --project=chromium
+        continue-on-error: true
+        env:
+          TEST_ENV: qa
+          UPDATE_BASELINES: ${{ github.event.inputs.update_baselines }}
+
+      - name: Commit updated baselines
+        if: github.event.inputs.update_baselines == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add baselines/
+          git diff --staged --quiet || git commit -m "Update UI baselines [skip ci]" && git push
+
+      - name: Upload baseline report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: baseline-report
+          path: |
+            playwright-report/
+            baselines/*.current.json
+          retention-days: 30

@@ -1,0 +1,32 @@
+{
+  "url": "/dynamic/LandBank.Crm/LBLead-details",
+  "elements": [
+    {
+      "tag": "button",
+      "role": "button"
+    },
+    {
+      "tag": "button",
+      "role": "button",
+      "text": "Audit Log"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Details"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Tasks"
+    },
+    {
+      "tag": "tab",
+      "role": "tab",
+      "text": "Notes"
+    },
+    {
+      "tag": "a"
+    }
+  ]
+}

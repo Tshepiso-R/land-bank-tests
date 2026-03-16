@@ -93,15 +93,6 @@ jobs:
             analysis-report.md
           retention-days: 30
 
-      # --- UI Baseline Monitor: schedule and manual dispatch only ---
-
-      - name: Run UI Baseline Monitor
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: npx playwright test tests/ui-baseline-monitor.spec.ts --project=chromium
-        continue-on-error: true
-        env:
-          TEST_ENV: qa
-
       # --- Reports ---
 
       - name: Download previous Allure history
