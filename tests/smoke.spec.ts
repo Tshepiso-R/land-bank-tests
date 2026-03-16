@@ -1,3 +1,6 @@
+// Individual happy-path smoke tests (24 serial tests, S01–S24).
+// Workflow: Create lead → Pre-screen → Opportunity → Loan → Verify → Onboard.
+// Includes married workflow (spouse verification in S20).
 import { test, expect, Browser, Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import { login } from './utils/login';
@@ -10,6 +13,7 @@ import { validLead, uniqueFirstName, clientInfoDetails, spouseInfo, loanInfo, fa
 test.use({ browserName: 'chromium' });
 
 test.describe('Smoke Tests — Happy Path', () => {
+  // Serial mode: tests share browser state and must run in order
   test.describe.configure({ mode: 'serial' });
 
   let page: Page;
@@ -130,12 +134,12 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Fill Opportunity Owner in header section
     await loan.selectOpportunityOwner(opportunityOwner);
 
-    // Client Info tab
+    // Client Info tab — wait for auto-populated client name before filling
     await expect(loan.clientNameInput).toBeVisible({ timeout: 30000 });
     await expect(loan.clientNameInput).not.toHaveValue('', { timeout: 5000 });
     await loan.fillClientInfo(clientInfoDetails);
 
-    // Fill Spouse Information (appears because maritalStatus is Married)
+    // Spouse info (married workflow — triggers second verification set in S20)
     await loan.fillSpouseInfo(spouseInfo);
 
     // Loan Info tab
@@ -167,8 +171,7 @@ test.describe('Smoke Tests — Happy Path', () => {
 
     await loan.initiateLoanApplication();
 
-    // With Auto Verify checked, status transitions through Consent Pending
-    // to Verification In Progress automatically
+    // Auto Verify skips consent/OTP step — goes straight to Verification In Progress
     await expect(loan.loanSubmittedToast).toBeVisible();
     await expect(loan.statusVerificationInProgress).toBeVisible({ timeout: 60000 });
     console.log(`Loan initiated — Status: Verification In Progress`);
@@ -178,7 +181,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   test('should login as Fatima and find the item in Inbox', async () => {
     await allure.allureId('S10');
 
-    // Logout current user
+    // Switch to verifier role
     await page.getByText('System Administrator').click();
     await page.getByRole('menuitem', { name: 'login Logout' }).click();
     await page.getByRole('button', { name: 'Sign In' }).waitFor({ state: 'visible', timeout: 30000 });
@@ -211,13 +214,12 @@ test.describe('Smoke Tests — Happy Path', () => {
   test('should verify Client Info on the inbox item matches opportunity data', async () => {
     await allure.allureId('S11');
 
-    // Client Info tab should be selected by default
     await expect(verification.clientInfoTab).toBeVisible();
 
-    // Scope assertions to the Client Info tab panel
     const clientPanel = page.getByRole('tabpanel', { name: 'Client Info' });
     await expect(clientPanel.getByText(clientInfoDetails.idNumber)).toBeVisible();
     await expect(clientPanel.getByText('Ian')).toBeVisible();
+    // .first() — spouse shares surname in married workflow
     await expect(clientPanel.getByText('Houvet').first()).toBeVisible();
     await expect(clientPanel.getByText(clientInfoDetails.email)).toBeVisible();
     await expect(clientPanel.getByText('0821234567')).toBeVisible();
@@ -262,6 +264,7 @@ test.describe('Smoke Tests — Happy Path', () => {
   test('should open verification dialog and verify Overview statuses', async () => {
     await allure.allureId('S14');
 
+    // .first() — married workflow has separate buttons for client and spouse
     await verification.openVerificationDialog();
 
     // Overview tab — statuses render as sha-status-tag (CSS uppercase)
@@ -288,13 +291,12 @@ test.describe('Smoke Tests — Happy Path', () => {
 
     const idPanel = dialog.locator('.ant-tabs-tabpane-active');
 
-    // Submitted section must show the same data captured in the opportunity
     await expect(idPanel.getByText('Submitted', { exact: true })).toBeVisible();
     await expect(idPanel.getByText(clientInfoDetails.firstName, { exact: true })).toBeVisible();
     await expect(idPanel.getByText(clientInfoDetails.lastName, { exact: true })).toBeVisible();
     await expect(idPanel.getByText(clientInfoDetails.idNumber).first()).toBeVisible();
 
-    // Check if verification provider returned results
+    // "Returned" section depends on external verification provider response time
     const isCompleted = await idPanel.locator('.sha-status-tag-container .sha-status-tag').first()
       .innerText().then(t => t.toUpperCase() === 'COMPLETED').catch(() => false);
 
@@ -469,7 +471,7 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Close the client verification dialog
     await verification.closeVerificationDialog();
 
-    // Handle spouse verification if present (married workflow creates a second "Awaiting Review" button)
+    // Married workflow: approve spouse verification if present
     const remainingCount = await verification.awaitingReviewButton.count();
     if (remainingCount > 0) {
       console.log(`Spouse verification found — approving ${remainingCount} remaining`);
@@ -525,9 +527,9 @@ test.describe('Smoke Tests — Happy Path', () => {
     await expect(page.getByRole('tab', { name: 'Loan Info' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Farms' })).toBeVisible();
 
-    // Verify client data carried over
     await expect(page.getByText(clientInfoDetails.idNumber)).toBeVisible();
     await expect(page.getByText('Ian', { exact: true })).toBeVisible();
+    // .first() — spouse shares surname
     await expect(page.getByText('Houvet', { exact: true }).first()).toBeVisible();
 
     console.log('Onboarding checklist page verified');
@@ -567,7 +569,6 @@ test.describe('Smoke Tests — Happy Path', () => {
     // Success toast should appear
     await expect(page.getByText('successfully')).toBeVisible({ timeout: 10000 });
 
-    // Wait for page to settle — may navigate to second assignment or My Items
     await page.waitForLoadState('networkidle');
 
     // If a second checklist assignment appears, submit it directly (no need to re-fill)

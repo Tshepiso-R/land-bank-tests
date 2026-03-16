@@ -1,3 +1,4 @@
+// Locators and helpers for the onboarding checklist page.
 import { Page, Locator, expect } from '@playwright/test';
 
 export class OnboardingLocators {

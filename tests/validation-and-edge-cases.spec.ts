@@ -1,3 +1,6 @@
+// Validation and edge-case regression tests (38 tests across 6 groups).
+// Groups run in parallel; each gets its own browser context.
+// Covers: required fields, format validation, married workflow, Entity lead/director/signatory edge cases.
 import { test, expect, Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import { LeadLocators } from './utils/locators/leadLocators';

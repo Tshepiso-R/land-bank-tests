@@ -1,3 +1,4 @@
+// Locators and helpers for the verification workflow: Inbox, verification dialog, approval actions.
 import { Page, Locator, expect } from '@playwright/test';
 
 export class VerificationLocators {

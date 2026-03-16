@@ -1,11 +1,10 @@
+// Shared helpers for validation-and-edge-cases.spec.ts to reduce repetition.
 import { Page, Browser, Locator, expect } from '@playwright/test';
 import { login } from './login';
 import { LeadLocators } from './locators/leadLocators';
 import { LoanLocators } from './locators/loanLocators';
 import { EntityLocators } from './locators/entityLocators';
 import { entityLead, uniqueFirstName, opportunityOwner } from './testData';
-
-// --- Authenticated page factory ---
 
 export interface TestContext {
   page: Page;

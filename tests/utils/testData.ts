@@ -1,7 +1,7 @@
-/**
- * Generates a unique first name per test run using a timestamp suffix.
- * This ensures each test creates distinct data that can be filtered/verified.
- */
+// Centralized test data for all spec files.
+// Happy-path data uses realistic SA formats (13-digit ID, 10-digit mobile).
+
+/** Unique first name per call — prevents collisions between parallel runs. */
 export function uniqueFirstName(): string {
   return `Auto${Date.now().toString(36)}`;
 }
@@ -19,6 +19,7 @@ export const validLead = {
   description: 'Automated test lead creation',
 };
 
+// Negative test data — used by validation-and-edge-cases.spec.ts
 export const invalidEmails = ['notanemail', 'missing@', '@nodomain', 'spaces in@email.com'];
 export const invalidMobiles = ['ABCDEFGHIJ', 'letters', '12345'];
 

@@ -1,3 +1,4 @@
+// Locators and helpers for Opportunities: list, detail page, Client Info, Loan Info, Farms, Consent.
 import { Page, Locator, expect } from '@playwright/test';
 
 export class LoanLocators {

@@ -1,3 +1,4 @@
+// Locators and helpers for Entity-specific UI: Entity Name, Entity Info, Directors, Signatories.
 import { Page, Locator, expect } from '@playwright/test';
 
 export class EntityLocators {

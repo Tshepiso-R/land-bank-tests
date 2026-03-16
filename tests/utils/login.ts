@@ -1,3 +1,4 @@
+// Shared login helper — all specs use this for authentication.
 import { Page } from '@playwright/test';
 
 export async function login(page: Page, username: string, password: string): Promise<void> {

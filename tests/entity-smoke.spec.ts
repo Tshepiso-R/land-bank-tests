@@ -1,3 +1,6 @@
+// Entity (Close Corporation) happy-path smoke tests (19 serial tests, E01–E21).
+// Workflow: Create Entity lead → Pre-screen → Opportunity → Directors/Signatory → Loan → Verify → Onboard.
+// Entity verification: each director/signatory gets its own approval dialog.
 import { test, expect, Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import { login } from './utils/login';
@@ -21,6 +24,7 @@ import {
 test.use({ browserName: 'chromium' });
 
 test.describe('Entity Smoke Tests — Happy Path', () => {
+  // Serial mode: tests share browser state and must run in order
   test.describe.configure({ mode: 'serial' });
 
   let page: Page;
@@ -130,19 +134,15 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
     const accountName = `${testFirstName} ${entityLead.lastName}`;
     await loan.openOpportunityDetails(accountName);
 
-    // Verify Entity-specific attributes
     await expect(page.getByText('Entity', { exact: true }).first()).toBeVisible({ timeout: 30000 });
     await expect(loan.initiateLoanApplicationButton).toBeVisible();
 
-    // Sub-tabs
     await expect(loan.clientInfoTab).toBeVisible();
     await expect(loan.loanInfoTab).toBeVisible();
     await expect(loan.farmsTab).toBeVisible();
 
-    // Entity Information section (instead of Individual Client Information)
+    // Entity-specific sections
     await expect(entity.entityInfoSection).toBeVisible();
-
-    // Director and Signatory sections
     await expect(page.getByText('Director', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Signatories', { exact: true }).first()).toBeVisible();
 
@@ -215,7 +215,7 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
   test('should login as Fatima and find the item in Inbox', async () => {
     await allure.allureId('E10');
 
-    // Logout current user
+    // Switch to verifier role
     await page.getByText('System Administrator').click();
     await page.getByRole('menuitem', { name: 'login Logout' }).click();
     await page.getByRole('button', { name: 'Sign In' }).waitFor({ state: 'visible', timeout: 30000 });
@@ -303,15 +303,14 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
   test('should approve director and signatory verifications', async () => {
     await allure.allureId('E15');
 
-    // Each "Awaiting Review" button opens a dialog with Overview / ID Verification / KYC Verification tabs.
-    // On the ID Verification tab: select "Approve" from Review Decision dropdown → Submit → Close.
+    // Director dialogs have ID Verification tab; Signatory/CIPC dialogs may not
     const awaitingButtons = page.getByRole('button', { name: 'Awaiting Review' });
     const totalToApprove = await awaitingButtons.count();
     console.log(`Found ${totalToApprove} Awaiting Review buttons`);
 
     for (let i = 0; i < totalToApprove; i++) {
-      // Always click the first remaining "Awaiting Review" button
       const btn = awaitingButtons.first();
+      // Previous dialog close may briefly disable the button
       await expect(btn).toBeEnabled({ timeout: 10000 });
       await btn.click({ timeout: 30000 });
 
@@ -364,8 +363,8 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
         await dialog.locator('button[aria-label="Close"]').click({ force: true });
       }
 
+      // Fallback: if Close button was blocked by a spinner overlay, press Escape
       await expect(dialog).toBeHidden({ timeout: 10000 }).catch(async () => {
-        // Fallback: press Escape if dialog didn't close
         await page.keyboard.press('Escape');
         await expect(dialog).toBeHidden({ timeout: 5000 });
       });
@@ -453,8 +452,7 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
       console.log('Second onboarding checklist submitted');
     }
 
-    // Entity flow: after onboarding, workflow may advance to Upload Resolution
-    // or show Completed depending on configuration
+    // Entity flow may advance to Upload Resolution or show Completed
     const nextStep = await page.getByRole('heading', { name: /Upload Resolution/ })
       .isVisible({ timeout: 15000 }).catch(() => false);
 

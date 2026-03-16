@@ -1,5 +1,5 @@
+// Locators and helpers for the Leads module: list, create dialog, detail page, pre-screening.
 import { Page, Locator, expect } from '@playwright/test';
-import { preScreeningPassYes, preScreeningPassNo } from '../testData';
 
 export class LeadLocators {
   readonly page: Page;
