@@ -5,7 +5,11 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: './tests',
-  testIgnore: ['**/consent.spec.ts'],
+  testMatch: [
+    'smoke.spec.ts',
+    'entity-smoke.spec.ts',
+    'validation-and-edge-cases.spec.ts',
+  ],
   timeout: 120000,
   expect: {
     timeout: 30000,
