@@ -105,6 +105,96 @@ export const farmData = {
 export const assignedTo = 'Fatima Abrahams';
 export const opportunityOwner = 'Fatima Abrahams';
 
+// --- Entity Lead test data ---
+
+export const entityLead = {
+  title: 'Mr',
+  firstName: uniqueFirstName(),
+  lastName: 'Houvet',
+  mobile: '0712345678',
+  email: 'tinaye.mushore@boxfusion.io',
+  clientType: 'Close Corporation (Entity)',
+  entityName: 'Boxfusion',
+  province: 'Gauteng',
+  preferredCommunication: 'Email',
+  leadChannel: 'Cold Call',
+  description: 'Automated entity smoke test',
+};
+
+export const entityInfo = {
+  entityName: 'Boxfusion',
+  companyRegistrationNumber: '2012/225386/07',
+  yearsInOperation: 15,
+  entityOrgType: 'Pty Ltd',
+  clientClassification: 'Commercial',
+  beeLevel: 'Level 6',
+  countryOfResidence: 'South Africa',
+  citizenship: 'South Africa',
+};
+
+export const directors = [
+  {
+    firstName: 'Ian',
+    lastName: 'Houvet',
+    idNumber: '7708206169188',
+    email: 'tinaye.mushore@boxfusion.io',
+    mobile: '0712345678',
+    citizenship: 'South Africa',
+    countryOfResidence: 'South Africa',
+    countryOfOrigin: 'South Africa',
+    maritalStatus: 'Married',
+  },
+  {
+    firstName: 'Xolile',
+    lastName: 'Ndlangana',
+    idNumber: '6311115651080',
+    email: 'Grace.Nyamushonyongora@boxfusion.io',
+    mobile: '0712345678',
+    citizenship: 'South Africa',
+    countryOfResidence: 'South Africa',
+    countryOfOrigin: 'South Africa',
+    maritalStatus: 'Married',
+  },
+  {
+    firstName: 'Chamaine',
+    lastName: 'Houvet',
+    idNumber: '7304190225085',
+    email: 'tinaye.mushore@gmail.com',
+    mobile: '0712345678',
+    citizenship: 'South Africa',
+    countryOfResidence: 'South Africa',
+    countryOfOrigin: 'South Africa',
+    maritalStatus: 'Married',
+  },
+];
+
+export const signatoryData = {
+  firstName: 'Ian',
+  lastName: 'Houvet',
+  idNumber: '7708206169188',
+  email: 'tinaye.mushore@boxfusion.io',
+  mobile: '0710736377',
+};
+
+export const entityLoanInfo = {
+  summary: 'User manual test',
+  amount: '50000',
+  product: 'R MT Loans',
+  existingRelationship: 'Existing Client',
+  sourcesOfIncome: 'Farming income',
+  loanPurpose: 'Purchase Of Movable Assets',
+  loanPurposeAmount: '40000',
+};
+
+export const entityFarmData = {
+  name: 'Land Farm',
+  landTenureStatus: 'Owned',
+  typesOfFarming: ['Agro-Chemicals', 'Agri-Business'],
+  size: '10',
+  province: 'Gauteng',
+  region: 'Central Region',
+};
+
 // --- Onboarding Checklist test data ---
 
 export const onboardingChecklist = {
