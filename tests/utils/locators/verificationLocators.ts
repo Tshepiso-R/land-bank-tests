@@ -3,14 +3,8 @@ import { Page, Locator, expect } from '@playwright/test';
 export class VerificationLocators {
   readonly page: Page;
 
-  // Sidebar
-  readonly inboxLink: Locator;
-
-  // Inbox table
+  // Inbox
   readonly inboxHeading: Locator;
-  readonly inboxSearchInput: Locator;
-  readonly inboxSearchButton: Locator;
-  readonly inboxTable: Locator;
 
   // Inbox item detail — header
   readonly confirmVerificationHeading: Locator;
@@ -25,26 +19,17 @@ export class VerificationLocators {
 
   // Action buttons
   readonly finaliseVerificationButton: Locator;
-  readonly flagHighRiskButton: Locator;
 
   // Verification dialog tabs
   readonly overviewTab: Locator;
   readonly idVerificationTab: Locator;
   readonly kycVerificationTab: Locator;
   readonly complianceTab: Locator;
-  readonly closeDialogButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
 
-    // Sidebar
-    this.inboxLink = page.getByRole('link', { name: 'Inbox' });
-
-    // Inbox table
     this.inboxHeading = page.getByRole('heading', { name: 'Incoming Items' });
-    this.inboxSearchInput = page.locator('.ant-input-group').getByRole('textbox');
-    this.inboxSearchButton = page.getByRole('button', { name: 'search' }).first();
-    this.inboxTable = page.getByRole('table');
 
     // Inbox item detail
     this.confirmVerificationHeading = page.getByRole('heading', { name: /Confirm verification outcomes/ });
@@ -59,14 +44,12 @@ export class VerificationLocators {
 
     // Action buttons
     this.finaliseVerificationButton = page.getByRole('button', { name: 'Finalise Verification Outcomes' });
-    this.flagHighRiskButton = page.getByRole('button', { name: 'Flag As High Risk' });
 
     // Verification dialog tabs
     this.overviewTab = page.getByRole('tab', { name: 'Overview' });
     this.idVerificationTab = page.getByRole('tab', { name: 'ID Verification' });
     this.kycVerificationTab = page.getByRole('tab', { name: 'KYC Verification' });
     this.complianceTab = page.getByRole('tab', { name: 'Compliance' });
-    this.closeDialogButton = page.getByRole('dialog').getByLabel('Close', { exact: true });
   }
 
   // --- Navigation ---
@@ -75,24 +58,6 @@ export class VerificationLocators {
     // Navigate directly via URL (sidebar may not have Inbox link for all roles)
     await this.page.goto('/dynamic/Shesha.Workflow/workflows-inbox');
     await expect(this.inboxHeading).toBeVisible({ timeout: 60000 });
-  }
-
-  async searchByRefNo(refNo: string): Promise<void> {
-    await this.inboxSearchInput.fill(refNo);
-    await this.inboxSearchButton.click();
-    // Wait for table to filter
-    await expect(this.page.getByText(`1-1 of 1 items`)).toBeVisible({ timeout: 30000 });
-  }
-
-  getInboxRowByRefNo(refNo: string): Locator {
-    return this.page.getByRole('row').filter({ hasText: refNo });
-  }
-
-  async openInboxItem(refNo: string): Promise<void> {
-    const row = this.getInboxRowByRefNo(refNo);
-    const detailLink = row.getByRole('link', { name: 'search' });
-    await detailLink.click();
-    await expect(this.confirmVerificationHeading).toBeVisible({ timeout: 60000 });
   }
 
   // --- Verification dialog helpers ---
@@ -131,8 +96,6 @@ export class VerificationLocators {
       const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
       await expect(approveOption).toBeVisible({ timeout: 5000 });
       await approveOption.click();
-    } else {
-      console.log('ID Verification: Already approved — skipping dropdown selection');
     }
 
     // Click Submit
@@ -142,7 +105,6 @@ export class VerificationLocators {
 
     // Wait for success indication (toast or status change)
     await this.page.waitForLoadState('networkidle');
-    console.log('ID Verification: Approved');
   }
 
   /** Approve KYC Verification: select "Approve" from First Name Review Decision dropdown */
@@ -178,19 +140,15 @@ export class VerificationLocators {
       const approveOption = dropdownPopup.locator('.ant-select-item-option').filter({ hasText: 'Approve' }).first();
       await expect(approveOption).toBeVisible({ timeout: 5000 });
       await approveOption.click();
-    } else {
-      console.log('KYC Verification: Already approved — skipping dropdown selection');
     }
 
     await this.page.waitForLoadState('networkidle');
-    console.log('KYC Verification: Approved');
   }
 
   /** Approve Compliance if tab is present */
   async approveComplianceIfPresent(): Promise<void> {
     const compTabVisible = await this.complianceTab.isVisible().catch(() => false);
     if (!compTabVisible) {
-      console.log('Compliance tab not present — skipping approval');
       return;
     }
 
@@ -222,7 +180,6 @@ export class VerificationLocators {
     }
 
     await this.page.waitForLoadState('networkidle');
-    console.log('Compliance: Approved');
   }
 
   /** Finalise verification outcomes — clicks the button and waits for status change */
@@ -231,13 +188,4 @@ export class VerificationLocators {
     // The page auto-navigates to the next workflow step — caller should wait for the new heading
   }
 
-  // --- Read-only field value helpers ---
-
-  fieldValue(label: string): Locator {
-    return this.page.getByText(label).locator('..').locator('..').last();
-  }
-
-  dialogFieldValue(label: string): Locator {
-    return this.page.getByRole('dialog').getByText(label).locator('..').locator('..').last();
-  }
 }

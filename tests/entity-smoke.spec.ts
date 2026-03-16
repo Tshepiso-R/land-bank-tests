@@ -312,6 +312,7 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
     for (let i = 0; i < totalToApprove; i++) {
       // Always click the first remaining "Awaiting Review" button
       const btn = awaitingButtons.first();
+      await expect(btn).toBeEnabled({ timeout: 10000 });
       await btn.click({ timeout: 30000 });
 
       const dialog = page.getByRole('dialog');
@@ -363,7 +364,11 @@ test.describe('Entity Smoke Tests — Happy Path', () => {
         await dialog.locator('button[aria-label="Close"]').click({ force: true });
       }
 
-      await expect(dialog).toBeHidden({ timeout: 10000 });
+      await expect(dialog).toBeHidden({ timeout: 10000 }).catch(async () => {
+        // Fallback: press Escape if dialog didn't close
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden({ timeout: 5000 });
+      });
       console.log(`Approved ${i + 1}/${totalToApprove}`);
     }
 

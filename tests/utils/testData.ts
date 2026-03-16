@@ -19,18 +19,8 @@ export const validLead = {
   description: 'Automated test lead creation',
 };
 
-// NOTE: Known issue — the global search bar on the Leads table does not filter results.
-
-// Existing converted lead used for read-only tests (avoids creating new data)
-export const convertedLead = {
-  firstName: 'Link',
-  lastName: 'Test',
-  accountName: 'Link Test',
-};
-
 export const invalidEmails = ['notanemail', 'missing@', '@nodomain', 'spaces in@email.com'];
 export const invalidMobiles = ['ABCDEFGHIJ', 'letters', '12345'];
-export const longFirstName = 'A'.repeat(100);
 
 export const requiredFields = [
   { field: 'title', label: 'Title' },
@@ -45,29 +35,6 @@ export const requiredFields = [
 ] as const;
 
 export type RequiredFieldKey = typeof requiredFields[number]['field'];
-
-// --- Pre-Screening Questionnaire ---
-// Questions where "Yes" answer = pass pre-screening
-export const preScreeningPassYes = [
-  'Is the applicant a South African citizen?',
-  'Is the farming land located in South Africa?',
-  'Do the intended farming activities fall within the Land Bank mandate?',
-  "Is the client's current Country of Residence South Africa?",
-  'Does the client currently have access to suitable land for farming activities?',
-];
-// Questions where "No" answer = pass pre-screening
-export const preScreeningPassNo = [
-  'Is the client blacklisted?',
-  'Is the client currently under debt review?',
-];
-
-// --- Testmail.app config ---
-export const testmailNamespace = '5s9ku';
-export const testmailApiKey = 'b300bfdf-3e55-4478-9e27-072849073ed4';
-
-export function testmailAddress(tag: string): string {
-  return `${testmailNamespace}.${tag}@inbox.testmail.app`;
-}
 
 // --- Loan / Opportunity test data ---
 
@@ -110,7 +77,6 @@ export const farmData = {
   region: 'Central Region',
 };
 
-export const assignedTo = 'Fatima Abrahams';
 export const opportunityOwner = 'Fatima Abrahams';
 
 // --- Entity Lead test data ---

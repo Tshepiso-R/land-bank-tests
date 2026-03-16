@@ -15,8 +15,3 @@ export async function login(page: Page, username: string, password: string): Pro
   await page.getByRole('heading', { name: 'My Dashboard' }).waitFor({ state: 'visible', timeout: 60000 });
 }
 
-export async function loginAsDefaultUser(page: Page): Promise<void> {
-  const username = process.env.CRM_USERNAME || 'admin';
-  const password = process.env.CRM_PASSWORD || '123qwe';
-  await login(page, username, password);
-}
