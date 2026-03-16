@@ -552,9 +552,8 @@ test.describe('Individual Loan Workflow — End to End', () => {
     await expect(onboarding.financialRecordsCheckbox).toBeChecked();
     await expect(onboarding.laborLawCompliantCheckbox).toBeChecked();
 
-    // Verify unchecked checkboxes
-    await expect(onboarding.businessPlanSupportCheckbox).not.toBeChecked();
-    await expect(onboarding.mentorEngagedCheckbox).not.toBeChecked();
+    await expect(onboarding.businessPlanSupportCheckbox).toBeChecked();
+    await expect(onboarding.mentorEngagedCheckbox).toBeChecked();
 
     console.log('Pre-onboarding checklist filled');
   });
