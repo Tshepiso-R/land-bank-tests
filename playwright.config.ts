@@ -16,13 +16,6 @@ export default defineConfig({
       outputFolder: 'playwright-report',
       open: 'never',
     }],
-    ['json', {
-      outputFile: 'playwright-report/results.json',
-    }],
-    ['allure-playwright', {
-      outputFolder: 'allure-results',
-      suiteTitle: true,
-    }],
   ],
   use: {
     baseURL,

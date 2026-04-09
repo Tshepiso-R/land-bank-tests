@@ -1,9 +1,0 @@
-node_modules/
-allure-results/
-allure-report/
-allure-history/
-playwright-report/
-shared-report/
-test-results/
-.playwright-mcp/
-*.png
